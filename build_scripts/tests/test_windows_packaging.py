@@ -428,7 +428,7 @@ class WindowsPackagingTest(unittest.TestCase):
         workflow = (
             Path(__file__).resolve().parents[2] / ".github/workflows/build.yml"
         ).read_text(encoding="utf-8")
-        self.assertIn("VCORE_REPOSITORY: OneXray/VCore", workflow)
+        self.assertIn("VCORE_REPOSITORY: pavru/VCore", workflow)
         self.assertEqual(
             workflow.count("repository: ${{ env.VCORE_REPOSITORY }}"), 2
         )

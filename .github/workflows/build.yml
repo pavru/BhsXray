@@ -33,7 +33,7 @@
 #     ANDROID_PLAY_SERVICE_JSON_BASE64  base64 of fastlane service account JSON
 #
 # Layout:
-#   build_scripts/app/builder.py#build_core expects XTLS/libXray as a sibling
+#   build_scripts/app/builder.py#build_core expects libXray (pavru/libXray) as a sibling
 #   of this repo. Every platform build job checks out this repo to `OneXray/`
 #   and libXray to `libXray/` at the workspace root. Windows also checks out
 #   VCore to `VCore/`.
@@ -42,7 +42,7 @@
 #   Outputs remain under `<workspace>/output`.
 
 name: Build
-run-name: Build ${{ inputs.target || 'all' }} · ${{ github.ref_name }}
+run-name: Build ${{ inputs.target || 'all' }} · ${{ github.ref_name }}${{ inputs.xray_core_ref && format(' · Xray {0}', inputs.xray_core_ref) || '' }}
 
 on:
   workflow_dispatch:
@@ -59,6 +59,11 @@ on:
           - macos
           - windows
           - linux
+      xray_core_ref:
+        description: Xray-core tag, branch, or commit (empty keeps libXray's pinned version)
+        required: false
+        type: string
+        default: ""
   push:
     tags:
       - "v*"
@@ -69,8 +74,9 @@ concurrency:
 
 env:
   NDK_VERSION: r29
+  LIBXRAY_REPOSITORY: pavru/libXray
   LIBXRAY_REF: main
-  VCORE_REPOSITORY: OneXray/VCore
+  VCORE_REPOSITORY: pavru/VCore
   VCORE_REF: main
   BUILD_NUMBER: ${{ github.run_number }}
 
@@ -84,10 +90,11 @@ jobs:
     outputs:
       libxray_sha: ${{ steps.revisions.outputs.libxray_sha }}
       vcore_sha: ${{ steps.revisions.outputs.vcore_sha }}
+      xray_core_query: ${{ steps.revisions.outputs.xray_core_query }}
     steps:
       - uses: actions/checkout@v7
         with:
-          repository: XTLS/libXray
+          repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ env.LIBXRAY_REF }}
           path: libXray
 
@@ -101,12 +108,19 @@ jobs:
         id: revisions
         env:
           BUILD_TARGET: ${{ inputs.target || 'all' }}
+          XRAY_CORE_REF: ${{ inputs.xray_core_ref || '' }}
         run: |
           libxray_sha="$(git -C libXray rev-parse HEAD)"
           vcore_sha="$(git -C VCore rev-parse HEAD)"
           [[ "$libxray_sha" =~ ^[0-9a-f]{40}$ && "$vcore_sha" =~ ^[0-9a-f]{40}$ ]]
+          # Resolve a moving tag or branch once so every platform builds one commit.
+          xray_core_query=""
+          if [[ -n "$XRAY_CORE_REF" ]]; then
+            xray_core_query="$(python3 libXray/build/main.py resolve-xray-core "$XRAY_CORE_REF")"
+          fi
           echo "libxray_sha=$libxray_sha" >> "$GITHUB_OUTPUT"
           echo "vcore_sha=$vcore_sha" >> "$GITHUB_OUTPUT"
+          echo "xray_core_query=$xray_core_query" >> "$GITHUB_OUTPUT"
           mkdir -p release-metadata
           echo "${GITHUB_EVENT_NAME}" > release-metadata/event.txt
           echo "${GITHUB_REF}" > release-metadata/ref.txt
@@ -116,6 +130,8 @@ jobs:
           echo "$vcore_sha" > release-metadata/vcore-sha.txt
           echo "$LIBXRAY_REF" > release-metadata/libxray-ref.txt
           echo "$VCORE_REF" > release-metadata/vcore-ref.txt
+          echo "$XRAY_CORE_REF" > release-metadata/xray-core-ref.txt
+          echo "$xray_core_query" > release-metadata/xray-core-query.txt
           echo "$GITHUB_RUN_ID" > release-metadata/run-id.txt
           echo "$GITHUB_RUN_ATTEMPT" > release-metadata/run-attempt.txt
           echo "$GITHUB_REPOSITORY" > release-metadata/repository.txt
@@ -138,6 +154,7 @@ jobs:
     needs: release_metadata
     env:
       ONEXRAY_LIBXRAY_SHA: ${{ needs.release_metadata.outputs.libxray_sha }}
+      XRAY_CORE_REF: ${{ needs.release_metadata.outputs.xray_core_query }}
     if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'ios'
     runs-on: macos-26
     timeout-minutes: 60
@@ -151,7 +168,7 @@ jobs:
 
       - uses: actions/checkout@v7
         with:
-          repository: XTLS/libXray
+          repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ needs.release_metadata.outputs.libxray_sha }}
           path: libXray
 
@@ -218,6 +235,7 @@ jobs:
     needs: release_metadata
     env:
       ONEXRAY_LIBXRAY_SHA: ${{ needs.release_metadata.outputs.libxray_sha }}
+      XRAY_CORE_REF: ${{ needs.release_metadata.outputs.xray_core_query }}
     if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'macos'
     runs-on: macos-26
     timeout-minutes: 60
@@ -231,7 +249,7 @@ jobs:
 
       - uses: actions/checkout@v7
         with:
-          repository: XTLS/libXray
+          repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ needs.release_metadata.outputs.libxray_sha }}
           path: libXray
 
@@ -302,6 +320,7 @@ jobs:
     needs: release_metadata
     env:
       ONEXRAY_LIBXRAY_SHA: ${{ needs.release_metadata.outputs.libxray_sha }}
+      XRAY_CORE_REF: ${{ needs.release_metadata.outputs.xray_core_query }}
     if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'macos'
     runs-on: macos-26
     timeout-minutes: 60
@@ -315,7 +334,7 @@ jobs:
 
       - uses: actions/checkout@v7
         with:
-          repository: XTLS/libXray
+          repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ needs.release_metadata.outputs.libxray_sha }}
           path: libXray
 
@@ -382,6 +401,7 @@ jobs:
     needs: release_metadata
     env:
       ONEXRAY_LIBXRAY_SHA: ${{ needs.release_metadata.outputs.libxray_sha }}
+      XRAY_CORE_REF: ${{ needs.release_metadata.outputs.xray_core_query }}
     if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'android'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -395,7 +415,7 @@ jobs:
 
       - uses: actions/checkout@v7
         with:
-          repository: XTLS/libXray
+          repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ needs.release_metadata.outputs.libxray_sha }}
           path: libXray
 
@@ -498,6 +518,7 @@ jobs:
     timeout-minutes: 60
     env:
       ONEXRAY_LIBXRAY_SHA: ${{ needs.release_metadata.outputs.libxray_sha }}
+      XRAY_CORE_REF: ${{ needs.release_metadata.outputs.xray_core_query }}
       ONEXRAY_VCORE_SHA: ${{ needs.release_metadata.outputs.vcore_sha }}
       GOARCH: ${{ matrix.goarch }}
       ONEXRAY_WINDOWS_ARCH: ${{ matrix.arch }}
@@ -512,7 +533,7 @@ jobs:
 
       - uses: actions/checkout@v7
         with:
-          repository: XTLS/libXray
+          repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ needs.release_metadata.outputs.libxray_sha }}
           path: libXray
 
@@ -686,6 +707,7 @@ jobs:
     needs: release_metadata
     env:
       ONEXRAY_LIBXRAY_SHA: ${{ needs.release_metadata.outputs.libxray_sha }}
+      XRAY_CORE_REF: ${{ needs.release_metadata.outputs.xray_core_query }}
     if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'linux'
     strategy:
       fail-fast: false
@@ -707,7 +729,7 @@ jobs:
 
       - uses: actions/checkout@v7
         with:
-          repository: XTLS/libXray
+          repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ needs.release_metadata.outputs.libxray_sha }}
           path: libXray
 

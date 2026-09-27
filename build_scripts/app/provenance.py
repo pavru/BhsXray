@@ -208,6 +208,9 @@ def finish_build(builder, receipt: dict) -> Path:
         "tools": tools,
         "fileSha256": files,
         "packages": packages,
+        # libXray's record of the requested ref and resolved module version;
+        # None when libXray predates the record and no ref was requested.
+        "xrayCore": getattr(builder.builder, "xray_core", None),
     })
     ndk = os.environ.get("ANDROID_NDK_HOME") or os.environ.get("ANDROID_NDK_ROOT")
     if ndk and (Path(ndk) / "source.properties").is_file():

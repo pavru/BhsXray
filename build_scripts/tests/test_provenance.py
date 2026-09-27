@@ -265,6 +265,12 @@ class ProvenanceTest(unittest.TestCase):
         self.assertEqual(build.count("ref: ${{ env.LIBXRAY_REF }}"), 1)
         self.assertEqual(build.count("ref: ${{ needs.release_metadata.outputs.libxray_sha }}"), 6)
         self.assertEqual(build.count("name: Upload build provenance"), 6)
+        self.assertEqual(build.count("repository: ${{ env.LIBXRAY_REPOSITORY }}"), 7)
+        self.assertEqual(build.count(
+            "XRAY_CORE_REF: ${{ needs.release_metadata.outputs.xray_core_query }}"), 6)
+        self.assertIn("XRAY_CORE_REF: ${{ inputs.xray_core_ref || '' }}", build)
+        self.assertIn('resolve-xray-core "$XRAY_CORE_REF"', build)
+        self.assertNotIn("${{ inputs.xray_core_ref }}\"", build)
         for name in ("publish.yml", "publish-microsoft-store.yml"):
             content = (workflows / name).read_text()
             self.assertIn("build_scripts/verify_release.py", content)
@@ -290,11 +296,14 @@ class ProvenanceTest(unittest.TestCase):
         (root / "pubspec.lock").write_text("fixture lock")
         package = output / "OneXray-linux-x86_64.zip"
         package.write_bytes(b"fixture package")
+        xray_core = {"requestedRef": "v26.9.9", "local": False,
+                     "version": "v1.260327.1-0.20260908222543-52a412d9e2f5",
+                     "revision": "52a412d9e2f5"}
         (output / "OneXray-windows-amd64.msix").write_bytes(b"other target")
         builder = SimpleNamespace(
             root_dir=str(root), output_dir=str(output), workspace_dir=str(self.artifacts),
             project_dir=str(root / "linux"), system="linux", build_number=401,
-            builder=SimpleNamespace(package_suffix="linux-x86_64"),
+            builder=SimpleNamespace(package_suffix="linux-x86_64", xray_core=xray_core),
             project_config={"core.lib.dst.dir.linux": "app",
                             "core.lib.src.files.linux": ["linux_so/libXray.so"]},
             read_version=lambda: "26.9.1+401",
@@ -309,6 +318,7 @@ class ProvenanceTest(unittest.TestCase):
         self.assertEqual(receipt["fileSha256"]["OneXray/assets/geodata/regions.json"], sha256(regions))
         self.assertEqual(receipt["fileSha256"]["OneXray/linux/app/libXray.so"], sha256(library))
         self.assertEqual(receipt["version"], "26.9.1+401")
+        self.assertEqual(receipt["xrayCore"], xray_core)
 
     def test_windows_receipt_records_only_the_built_mode(self):
         root = self.artifacts / "OneXray"

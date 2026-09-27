@@ -1,8 +1,10 @@
+import json
 import os
 import platform
 import re
 import shutil
 import sys
+from pathlib import Path
 
 from app.command_line import (
     check_and_create_dir,
@@ -11,6 +13,30 @@ from app.command_line import (
     run_command,
 )
 from app.config import PROJECT_CONFIG
+
+XRAY_CORE_REF_ENV = "XRAY_CORE_REF"
+LIBXRAY_XRAY_CORE_REF_ENV = "LIBXRAY_XRAY_CORE_REF"
+XRAY_CORE_METADATA_FILE = "xray-core.json"
+
+
+def requested_xray_core_ref() -> str:
+    """Xray-core tag, branch, commit, or Go version; empty keeps libXray's pin."""
+    return os.environ.get(XRAY_CORE_REF_ENV, "").strip()
+
+
+def read_xray_core_metadata(lib_dir: str, requested: str) -> dict | None:
+    path = Path(lib_dir) / XRAY_CORE_METADATA_FILE
+    if not path.is_file():
+        if requested:
+            raise ValueError(
+                f"libXray did not record {XRAY_CORE_METADATA_FILE}; "
+                f"it does not support {XRAY_CORE_REF_ENV}"
+            )
+        return None
+    metadata = json.loads(path.read_text(encoding="utf-8"))
+    if metadata.get("requestedRef") != (requested or None):
+        raise ValueError("libXray recorded a different Xray-core ref than requested")
+    return metadata
 
 # ponytail: Only pubspec's top-level version is needed; add a YAML parser if the
 # build interface ever needs structured YAML data.
@@ -69,7 +95,11 @@ class Builder:
         cmd = [sys.executable, "build/main.py", cmd_system]
         if cmd_system == "apple":
             cmd.append("go")
-        run_command(cmd, cwd=lib_dir)
+        # Always set the libXray variable so an inherited value cannot bypass
+        # the ref recorded in provenance.
+        xray_core_ref = requested_xray_core_ref()
+        run_command(cmd, cwd=lib_dir, env={LIBXRAY_XRAY_CORE_REF_ENV: xray_core_ref})
+        self.xray_core = read_xray_core_metadata(lib_dir, xray_core_ref)
 
         lib_dst_path = os.path.join(
             self.project_dir, self.project_config[f"core.lib.dst.dir.{self.system}"]

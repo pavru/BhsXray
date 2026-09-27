@@ -1,3 +1,5 @@
+import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -47,6 +49,17 @@ class BuilderTest(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 main()
             builder.assert_not_called()
+
+    def test_cli_xray_core_ref_overrides_environment(self):
+        for options, expected in (([], "from-env"), (["--xray-core-ref", "v26.9.9"], "v26.9.9")):
+            with (
+                self.subTest(options=options),
+                mock.patch.dict("os.environ", {"XRAY_CORE_REF": "from-env"}),
+                mock.patch.object(sys, "argv", ["build", "OneXray", "android", *options]),
+                mock.patch("main.FlutterBuilder"),
+            ):
+                main()
+                self.assertEqual(os.environ["XRAY_CORE_REF"], expected)
 
     def test_flutter_windows_build_and_packager_share_one_mode(self):
         for mode in ("exe", "msix"):
@@ -126,14 +139,59 @@ class BuilderTest(unittest.TestCase):
                     f"core.lib.src.files.{system}": [library_name],
                     "core.dat.dst.dir": "assets/dat",
                 }
-                with mock.patch("app.builder.run_command") as run:
+                with (
+                    mock.patch.dict("os.environ", {"XRAY_CORE_REF": ""}),
+                    mock.patch("app.builder.run_command") as run,
+                ):
                     self.builder.build_core()
 
-                run.assert_called_once_with(command, cwd=str(lib_dir))
+                run.assert_called_once_with(
+                    command, cwd=str(lib_dir), env={"LIBXRAY_XRAY_CORE_REF": ""})
+                self.assertIsNone(self.builder.xray_core)
                 destination = Path(self.builder.project_dir)
                 self.assertEqual((destination / "app" / library_file).read_bytes(), b"fixture library")
                 self.assertEqual((destination / "assets/dat/geoip.dat").read_bytes(), b"fixture geodata")
                 self.assertFalse((lib_dir / "build").exists())
+
+    def _build_linux_core(self, requested: str, metadata: dict | None):
+        lib_dir = self.root_dir / "xray-core" / "libXray"
+        (lib_dir / "dat").mkdir(parents=True, exist_ok=True)
+        (lib_dir / "libXray.so").write_bytes(b"fixture library")
+        record = lib_dir / "xray-core.json"
+        if metadata is None:
+            record.unlink(missing_ok=True)
+        else:
+            record.write_text(json.dumps(metadata))
+        self.builder.workspace_dir = str(lib_dir.parent)
+        self.builder.system = "linux"
+        self.builder.project_dir = str(lib_dir.parent / "OneXray" / "linux")
+        self.builder.project_config = {
+            "core.dir": "libXray", "core.lib.dst.dir.linux": "app",
+            "core.lib.src.files.linux": ["libXray.so"], "core.dat.dst.dir": "assets/dat",
+        }
+        with (
+            mock.patch.dict("os.environ", {"XRAY_CORE_REF": requested,
+                                           "LIBXRAY_XRAY_CORE_REF": "inherited"}),
+            mock.patch("app.builder.run_command") as run,
+        ):
+            self.builder.build_core()
+        return run
+
+    def test_requested_xray_core_ref_is_passed_and_recorded(self):
+        metadata = {"requestedRef": "v26.9.9", "local": False,
+                    "version": "v1.260327.1-0.20260908222543-52a412d9e2f5",
+                    "revision": "52a412d9e2f5"}
+
+        run = self._build_linux_core(" v26.9.9 ", metadata)
+
+        self.assertEqual(run.call_args.kwargs["env"], {"LIBXRAY_XRAY_CORE_REF": "v26.9.9"})
+        self.assertEqual(self.builder.xray_core, metadata)
+
+    def test_xray_core_ref_requires_matching_libxray_record(self):
+        for metadata in (None, {"requestedRef": "main", "version": "v1.0.0"},
+                         {"requestedRef": None, "version": "v1.0.0"}):
+            with self.subTest(metadata=metadata), self.assertRaises(ValueError):
+                self._build_linux_core("v26.9.9", metadata)
 
     def test_core_build_failure_propagates_before_copying_artifacts(self):
         self.builder.workspace_dir = str(self.root_dir)

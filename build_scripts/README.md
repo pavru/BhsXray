@@ -138,6 +138,14 @@ uv run --project build_scripts python build_scripts/main.py OneXray <system>
 Use `uv run --project build_scripts python build_scripts/main.py --help` to
 display the CLI syntax.
 
+To build another Xray-core revision than libXray's pin, pass
+`--xray-core-ref <tag|branch|commit>` or set `XRAY_CORE_REF`. The value is handed
+to libXray as `LIBXRAY_XRAY_CORE_REF`; libXray resolves release tags to commits and
+records the result in `xray-core.json`, which the build copies into the provenance
+receipt as `xrayCore`. A requested ref fails the build when libXray does not
+confirm it. The `Build` workflow's `xray_core_ref` input resolves the ref once in
+the metadata job, so every platform builds the same commit.
+
 ### Supported systems
 
 | `system` | Build host | Behavior |
@@ -237,6 +245,11 @@ uv run --project build_scripts python build_scripts/main.py OneXray <system>
 
 可以运行 `uv run --project build_scripts python build_scripts/main.py --help`
 查看命令格式。
+
+如需使用 libXray 固定版本以外的 Xray-core，传入 `--xray-core-ref <tag|branch|commit>`
+或设置 `XRAY_CORE_REF`。该值以 `LIBXRAY_XRAY_CORE_REF` 传给 libXray，由其把发布标签解析为
+提交并写入 `xray-core.json`；构建凭证以 `xrayCore` 记录该结果。libXray 未确认所请求的 ref
+时构建失败。`Build` 工作流的 `xray_core_ref` 输入只在元数据任务中解析一次，所有平台使用同一提交。
 
 ### 支持的系统
 
@@ -340,6 +353,14 @@ uv run --project build_scripts python build_scripts/main.py OneXray <system>
 
 Команда `uv run --project build_scripts python build_scripts/main.py --help`
 выводит синтаксис CLI.
+
+Чтобы собрать другую версию Xray-core вместо закреплённой в libXray, передайте
+`--xray-core-ref <tag|branch|commit>` или задайте `XRAY_CORE_REF`. Значение уходит
+в libXray как `LIBXRAY_XRAY_CORE_REF`: libXray переводит релизный тег в коммит и
+записывает результат в `xray-core.json`, а сборка переносит его в provenance как
+`xrayCore`. Если libXray не подтвердил запрошенный ref, сборка завершается ошибкой.
+Input `xray_core_ref` в workflow `Build` разрешается один раз в metadata-job, поэтому
+все платформы собирают один и тот же коммит.
 
 ### Поддерживаемые системы
 
