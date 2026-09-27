@@ -27,7 +27,10 @@ _VCORE_IDENTITY = (
 )
 _WINTUN_VERSION = "0.14.1"
 _WINTUN_SHA256 = "07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51"
-_RUNTIME_FILES = ("libXray.dll", "OneXrayCore.exe", "wintun.dll", *_VCORE_ARTIFACTS)
+_BASE_RUNTIME_FILES = ("libXray.dll", "OneXrayCore.exe", "wintun.dll")
+_RUNTIME_FILES = (*_BASE_RUNTIME_FILES, *_VCORE_ARTIFACTS)
+# Read by windows/app.cmake when installing the runtime files.
+WITHOUT_VCORE_ENV = "ONEXRAY_WINDOWS_WITHOUT_VCORE"
 
 
 class WindowsBuilder(Builder):
@@ -60,10 +63,20 @@ class WindowsBuilder(Builder):
             return "arm64"
         raise ValueError("Windows builds only support x64 and arm64")
 
+    @property
+    def uses_vcore(self) -> bool:
+        # MSIX tunnels through VCore; EXE only bundles it unless the project
+        # opts out with windows.exe.vcore.
+        return self.mode == "msix" or self.project_config.get("windows.exe.vcore", True)
+
+    def runtime_files(self) -> tuple[str, ...]:
+        return _RUNTIME_FILES if self.uses_vcore else _BASE_RUNTIME_FILES
+
     def before_build(self):
         super().before_build()
         self.build_core()
-        self.build_vcore()
+        if self.uses_vcore:
+            self.build_vcore()
         self.install_wintun()
 
     def install_wintun(self):
@@ -147,7 +160,8 @@ class WindowsBuilder(Builder):
         source = (Path(self.root_dir) / "build" / "windows" /
                   self.target_architecture / "runner" / "Release")
         for name in (
-            self.project_config["app.executable.windows"], "flutter_windows.dll", *_RUNTIME_FILES,
+            self.project_config["app.executable.windows"], "flutter_windows.dll",
+            *self.runtime_files(),
             *self._required_crt_files(),
         ):
             artifact = source / name
@@ -187,8 +201,11 @@ class WindowsBuilder(Builder):
                     "--flutter-build-args", f"build-number={build_number or self.build_number}",
                     "--artifact-name", f"{self.project}-{self.package_suffix}." + "{{ext}}",
                 ),
-                # Fastforge resolves the bundle directory from this variable.
-                env={"PROCESSOR_ARCHITECTURE": "AMD64" if architecture == "x64os" else "ARM64"},
+                env={
+                    # Fastforge resolves the bundle directory from this variable.
+                    "PROCESSOR_ARCHITECTURE": "AMD64" if architecture == "x64os" else "ARM64",
+                    WITHOUT_VCORE_ENV: "0" if self.uses_vcore else "1",
+                },
             )
         finally:
             config_path.write_bytes(original_config)

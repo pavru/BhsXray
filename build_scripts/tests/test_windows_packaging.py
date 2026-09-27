@@ -73,6 +73,30 @@ class WindowsPackagingTest(unittest.TestCase):
         self.builder.build_app()
         self.assertEqual(calls, ["exe,zip"])
 
+    def test_exe_mode_omits_vcore_only_when_the_project_opts_out(self):
+        for mode, config, uses_vcore in (
+            ("exe", {}, True),
+            ("exe", {"windows.exe.vcore": False}, False),
+            ("msix", {"windows.exe.vcore": False}, True),
+        ):
+            with self.subTest(mode=mode, config=config):
+                self.builder.mode = mode
+                self.builder.project_config = {**PROJECT_CONFIG["OneXray"], **config}
+                if not config:
+                    self.builder.project_config.pop("windows.exe.vcore")
+                self.assertEqual(self.builder.uses_vcore, uses_vcore)
+                self.assertEqual(set(_VCORE_ARTIFACTS) <= set(self.builder.runtime_files()),
+                                 uses_vcore)
+                with (
+                    patch("app.builder.Builder.before_build"),
+                    patch.object(self.builder, "build_core"),
+                    patch.object(self.builder, "install_wintun"),
+                    patch.object(self.builder, "build_vcore") as build_vcore,
+                ):
+                    self.builder.before_build()
+                self.assertEqual(build_vcore.called, uses_vcore)
+        self.assertFalse(PROJECT_CONFIG["OneXray"]["windows.exe.vcore"])
+
     def _bundle(self):
         source = (Path(self.builder.root_dir) / "build/windows" /
                   self.builder.target_architecture / "runner/Release")
@@ -88,6 +112,7 @@ class WindowsPackagingTest(unittest.TestCase):
         return source
 
     def test_fastforge_builds_both_formats_with_explicit_mode_and_architecture(self):
+        self.builder.mode = "exe"
         original_config = self.config_path.read_bytes()
         pubspec = Path(self.pubspec_path).read_bytes()
         for target, package_arch, inno_arch, processor_arch in (
@@ -121,7 +146,8 @@ class WindowsPackagingTest(unittest.TestCase):
                         "--flutter-build-args", "build-number=412",
                         "--artifact-name", f"OneXray-windows-{package_arch}." + "{{ext}}",
                     ),
-                    env={"PROCESSOR_ARCHITECTURE": processor_arch},
+                    env={"PROCESSOR_ARCHITECTURE": processor_arch,
+                         "ONEXRAY_WINDOWS_WITHOUT_VCORE": "1"},
                 )
                 for extension in ("exe", "zip"):
                     self.assertEqual(

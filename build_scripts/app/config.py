@@ -22,6 +22,8 @@ PROJECT_CONFIG = {
         # Fork: build a locally signed universal APK instead of publishing an
         # App Bundle through Google Play with fastlane.
         "android.package": "apk",
+        # Fork: EXE builds omit VCore, which only the (disabled) MSIX mode uses.
+        "windows.exe.vcore": False,
         "app.release.dir.android": "../build/app/outputs",
         "app.release.dir.linux": "../dist",
     },

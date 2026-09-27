@@ -8,7 +8,8 @@
 #              libXray, so each APK carries exactly one version.
 #   Windows:   one EXE installer and ZIP per architecture with the default
 #              Core, plus a standalone Core per version and architecture and
-#              cores.json with their SHA-256 for in-app Core selection.
+#              cores.json with their SHA-256 for in-app Core selection. EXE
+#              builds omit VCore, which only the disabled MSIX mode uses.
 #   Release:   pushing a v* tag publishes every artifact as a GitHub Release.
 #
 # Android signing secrets (without them manual runs are debug-signed and tag
@@ -18,9 +19,9 @@
 #   ANDROID_KEY_PASSWORD      key password
 #   ANDROID_KEY_ALIAS         key alias
 #
-# Layout: every job checks out this repository to OneXray/ and libXray (and
-# VCore for Windows) as siblings, as build_scripts expects; outputs are written
-# to output/ at the workspace root.
+# Layout: every job checks out this repository to OneXray/ and libXray as
+# siblings, as build_scripts expects; outputs are written to output/ at the
+# workspace root.
 
 name: BhsXRay
 run-name: BhsXRay · ${{ github.ref_name }}
@@ -41,8 +42,6 @@ concurrency:
 env:
   LIBXRAY_REPOSITORY: pavru/libXray
   LIBXRAY_REF: main
-  VCORE_REPOSITORY: pavru/VCore
-  VCORE_REF: main
   NDK_VERSION: r29
   BUILD_NUMBER: ${{ github.run_number }}
   PYTHONUTF8: "1"
@@ -55,7 +54,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       libxray_sha: ${{ steps.resolve.outputs.libxray_sha }}
-      vcore_sha: ${{ steps.resolve.outputs.vcore_sha }}
       versions: ${{ steps.resolve.outputs.versions }}
       default_query: ${{ steps.resolve.outputs.default_query }}
     steps:
@@ -69,22 +67,14 @@ jobs:
           ref: ${{ env.LIBXRAY_REF }}
           path: libXray
 
-      - uses: actions/checkout@v7
-        with:
-          repository: ${{ env.VCORE_REPOSITORY }}
-          ref: ${{ env.VCORE_REF }}
-          path: VCore
-
       - name: Resolve revisions
         id: resolve
         run: |
           libxray_sha="$(git -C libXray rev-parse HEAD)"
-          vcore_sha="$(git -C VCore rev-parse HEAD)"
-          [[ "$libxray_sha" =~ ^[0-9a-f]{40}$ && "$vcore_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$libxray_sha" =~ ^[0-9a-f]{40}$ ]]
           echo "libxray_sha=$libxray_sha" >> "$GITHUB_OUTPUT"
-          echo "vcore_sha=$vcore_sha" >> "$GITHUB_OUTPUT"
           mkdir -p metadata
-          python3 - "$libxray_sha" "$vcore_sha" <<'EOF'
+          python3 - "$libxray_sha" <<'EOF'
           import json, os, subprocess, sys
 
           config = json.load(open("OneXray/.github/xray-core-versions.json", encoding="utf-8"))
@@ -107,7 +97,7 @@ jobs:
               json.dump({
                   "app": os.environ["GITHUB_SHA"], "ref": os.environ["GITHUB_REF"],
                   "runId": os.environ["GITHUB_RUN_ID"], "runAttempt": os.environ["GITHUB_RUN_ATTEMPT"],
-                  "libXray": sys.argv[1], "VCore": sys.argv[2],
+                  "libXray": sys.argv[1],
                   "xrayCore": {"default": default, "versions": matrix},
               }, record, indent=2)
           EOF
@@ -244,7 +234,7 @@ jobs:
   # =================================================================
   # Windows — EXE installer and ZIP per architecture with the default Core.
   #   x64 uses Windows Server 2025; arm64 uses GitHub's native Windows 11
-  #   arm64 runner so Flutter, libXray, and VCore match the target.
+  #   arm64 runner so Flutter and libXray match the target.
   # =================================================================
   windows:
     needs: metadata
@@ -254,19 +244,16 @@ jobs:
         include:
           - arch: x64
             goarch: amd64
-            rust_target: x86_64-pc-windows-msvc
             package_suffix: windows-amd64
             runner: windows-2025
           - arch: arm64
             goarch: arm64
-            rust_target: aarch64-pc-windows-msvc
             package_suffix: windows-arm64
             runner: windows-11-arm
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     env:
       ONEXRAY_LIBXRAY_SHA: ${{ needs.metadata.outputs.libxray_sha }}
-      ONEXRAY_VCORE_SHA: ${{ needs.metadata.outputs.vcore_sha }}
       XRAY_CORE_REF: ${{ needs.metadata.outputs.default_query }}
       GOARCH: ${{ matrix.goarch }}
       ONEXRAY_WINDOWS_ARCH: ${{ matrix.arch }}
@@ -285,24 +272,10 @@ jobs:
           ref: ${{ needs.metadata.outputs.libxray_sha }}
           path: libXray
 
-      - uses: actions/checkout@v7
-        with:
-          repository: ${{ env.VCORE_REPOSITORY }}
-          ref: ${{ needs.metadata.outputs.vcore_sha }}
-          path: VCore
-
       - uses: actions/setup-go@v7
         with:
           go-version: stable
           check-latest: true
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.rust_target }}
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: VCore
 
       - uses: actions/setup-python@v7
         with:

@@ -56,6 +56,11 @@ def source_revision(path: Path, expected: str | None = None) -> str:
     return revision
 
 
+def _uses_vcore(builder, target: str) -> bool:
+    # A Windows EXE build may omit VCore (windows.exe.vcore).
+    return target == "windows" and getattr(builder.builder, "uses_vcore", True)
+
+
 def begin_build(builder, target: str) -> dict:
     root = Path(builder.root_dir)
     workspace = Path(builder.workspace_dir)
@@ -70,7 +75,7 @@ def begin_build(builder, target: str) -> dict:
         "app": root,
         "libXray": workspace / builder.project_config["core.dir"],
     }
-    if target == "windows":
+    if _uses_vcore(builder, target):
         source_paths["VCore"] = Path(builder.builder._vcore_dir())
         sources["VCore"] = source_revision(
             source_paths["VCore"], os.environ.get("ONEXRAY_VCORE_SHA"),
@@ -156,7 +161,7 @@ def finish_build(builder, receipt: dict) -> Path:
         "android/gradle/wrapper/gradle-wrapper.properties",
     )]
     lock_files.extend(root.glob("*/Podfile.lock"))
-    if target == "windows":
+    if _uses_vcore(builder, target):
         vcore = Path(builder.builder._vcore_dir())
         lock_files.extend((vcore / "Cargo.lock", vcore / "scripts/uv.lock"))
     files = {}
@@ -218,8 +223,9 @@ def finish_build(builder, receipt: dict) -> Path:
     if target == "windows":
         if receipt["windowsMode"] == "msix":
             receipt["msixVersion"] = builder.builder.msix_version()
-        receipt["vcoreArtifacts"] = json.loads((vcore / "dist/windows" /
-            receipt["architecture"] / "vcore-windows-artifacts.json").read_text())
+        if _uses_vcore(builder, target):
+            receipt["vcoreArtifacts"] = json.loads((vcore / "dist/windows" /
+                receipt["architecture"] / "vcore-windows-artifacts.json").read_text())
     mode_suffix = f"-{receipt['windowsMode']}" if target == "windows" else ""
     destination = output / f"provenance-{target}-{receipt['architecture']}{mode_suffix}.json"
     destination.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
