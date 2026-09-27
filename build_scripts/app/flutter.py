@@ -101,7 +101,8 @@ class FlutterBuilder(Builder):
 
         cmd = [flutter_command(), "build", self.build_type[self.system]]
         if self.system == "android":
-            cmd.extend(["--target-platform", "android-arm64,android-x64"])
+            cmd.extend(["--target-platform", self.project_config.get(
+                "android.target_platforms", "android-arm64,android-x64")])
         elif self.system == "windows":
             cmd.append(f"--dart-define=ONEXRAY_WINDOWS_MODE={self.builder.mode}")
         run_command(cmd, cwd=self.root_dir)

@@ -218,7 +218,7 @@ class BuilderTest(unittest.TestCase):
             builder.build_app()
         run.assert_called_once_with(["fastlane", "deploy", "--verbose"], cwd=builder.project_dir)
 
-    def test_fork_config_builds_a_universal_apk(self):
+    def test_fork_config_builds_an_arm64_apk(self):
         with mock.patch.dict("os.environ", {"BUILD_NUMBER": "1"}):
             builder = FlutterBuilder("OneXray", "android", str(self.root_dir / "build_scripts"))
         with (
@@ -227,7 +227,7 @@ class BuilderTest(unittest.TestCase):
         ):
             builder.build_app()
         run.assert_called_once_with(
-            [flutter_command(), "build", "apk", "--target-platform", "android-arm64,android-x64"],
+            [flutter_command(), "build", "apk", "--target-platform", "android-arm64"],
             cwd=builder.root_dir,
         )
         build_app.assert_called_once()

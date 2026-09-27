@@ -4,11 +4,12 @@
 #
 #   Xray-core: .github/xray-core-version.json. The metadata job resolves the
 #              tag to one commit, so every job builds the same Xray-core.
-#   Android:   one universal APK; Xray-core is compiled into libXray.
+#   Android:   one arm64-v8a APK; Xray-core is compiled into libXray.
 #   Windows:   one EXE installer and ZIP per architecture, each with its Core.
 #              EXE builds omit VCore, which only the disabled MSIX mode uses.
-#   Release:   pushing a v* tag (vX.Y.Z-bhs.N) publishes every artifact as a
-#              GitHub Release.
+#   Release:   pushing a v* tag publishes every artifact as a GitHub Release.
+#              The fork numbers its own versions (brand.json "version"); the
+#              tag must match it, as vX.Y.Z.
 #
 # Android signing secrets (without them manual runs are debug-signed and tag
 # builds fail):
@@ -124,8 +125,17 @@ jobs:
       - name: Test rebrand tool
         run: python -m unittest discover -s tool/rebrand/tests -p 'test_*.py'
 
+      - name: Tag matches the fork version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version="$(python -c "import json; print(json.load(open('tool/rebrand/brand.json'))['version'])")"
+          if [[ "${GITHUB_REF_NAME%%-*}" != "v$version" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $version in tool/rebrand/brand.json"
+            exit 1
+          fi
+
   # =================================================================
-  # Android — one locally signed universal APK.
+  # Android — one locally signed arm64-v8a APK.
   # =================================================================
   android:
     needs: metadata
@@ -205,7 +215,7 @@ jobs:
       - name: Name artifacts
         working-directory: output
         run: |
-          mv OneXray-android-universal.apk BhsXRay-android-universal.apk
+          mv OneXray-android-universal.apk BhsXRay-android-arm64.apk
           mv provenance-android-*.json provenance-android.json
 
       - name: Upload APK
@@ -213,7 +223,7 @@ jobs:
         with:
           name: android
           path: |
-            output/BhsXRay-android-universal.apk
+            output/BhsXRay-android-arm64.apk
             output/provenance-android.json
           if-no-files-found: error
 
@@ -412,7 +422,7 @@ jobs:
           sha256sum -- * > SHA256SUMS
           ls -l
           prerelease=()
-          # Fork tags are vX.Y.Z-bhs.N; only -alpha/-beta/-rc tags are prereleases.
+          # Only -alpha/-beta/-rc tags are prereleases.
           [[ "$TAG" =~ -(alpha|beta|rc) ]] && prerelease=(--prerelease)
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "BhsXRay $TAG" \
             --generate-notes --verify-tag "${prerelease[@]}" -- *

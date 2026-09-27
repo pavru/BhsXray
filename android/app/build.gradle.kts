@@ -39,7 +39,8 @@ android {
         if (!splitPerAbi) {
             ndk {
                 abiFilters.clear()
-                abiFilters += listOf("arm64-v8a", "x86_64")
+                // Fork: arm64 phones only; x86_64 would double the APK for emulators.
+                abiFilters += listOf("arm64-v8a")
             }
         }
     }
@@ -50,7 +51,7 @@ android {
                 reset()
                 isEnable = true
                 isUniversalApk = false
-                include("arm64-v8a", "x86_64")
+                include("arm64-v8a")
             }
         }
     }

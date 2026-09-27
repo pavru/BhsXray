@@ -1,3 +1,4 @@
+import json
 import sys
 import tempfile
 import unittest
@@ -171,6 +172,42 @@ class RebrandTest(unittest.TestCase):
 
         self.assertEqual(report.residuals,
                          [("lib/unknown.dart", 1, "const vendor = 'yuandev';")])
+
+    def test_version_and_brand_color_follow_brand_config(self):
+        self.write("pubspec.yaml", "name: onexray\nversion: 26.9.5+1\n")
+        self.write(rebrand.COLORS, '<color name="one_xray_blue">#007aff</color>\n'
+                                   '<color name="other">#007AFF</color>\n')
+
+        self.run_rebrand()
+
+        version = rebrand.load_config(rebrand.DEFAULT_CONFIG).version
+        self.assertEqual(self.read("pubspec.yaml"), f"name: onexray\nversion: {version}+1\n")
+        self.assertEqual(self.read(rebrand.COLORS),
+                         '<color name="one_xray_blue">#109E92</color>\n'
+                         '<color name="other">#007AFF</color>\n')
+        # A build number written by the build scripts is not a pending change.
+        self.write("pubspec.yaml", f"name: onexray\nversion: {version}+405\n")
+        self.assertNotIn("pubspec.yaml", self.run_rebrand(write=False).changes)
+
+    def test_brand_files_replace_existing_targets_only(self):
+        files = self.root / "brand-files"
+        config = self.root / "brand.json"
+        data = json.loads(rebrand.DEFAULT_CONFIG.read_text(encoding="utf-8"))
+        config.write_text(json.dumps({**data, "files": files.name}), encoding="utf-8")
+        for path, content in (("app/icon.png", b"\x89PNG\0fork"), ("app/icon.xml", b"<fork/>\n"),
+                              ("app/gone.png", b"\0fork")):
+            (files / path).parent.mkdir(parents=True, exist_ok=True)
+            (files / path).write_bytes(content)
+        self.write("app/icon.png", "upstream")
+        self.write("app/icon.xml", "<fork/>\r\n")  # a CRLF checkout of the same file
+
+        report = rebrand.run(self.root, config, write=True)
+
+        self.assertEqual(report.replaced, ["app/icon.png"])
+        self.assertEqual(report.missing, ["app/gone.png"])
+        self.assertEqual((self.root / "app/icon.png").read_bytes(), b"\x89PNG\0fork")
+        self.assertFalse((self.root / "app/gone.png").exists())
+        self.assertEqual(rebrand.run(self.root, config, write=False).replaced, [])
 
     def test_restored_upstream_duplicate_is_removed(self):
         self.write(f"{KOTLIN_OLD}/A.kt", "package net.yuandev.onexray\n")

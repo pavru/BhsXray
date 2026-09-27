@@ -25,6 +25,23 @@ python -m unittest discover -s tool/rebrand/tests -p 'test_*.py'
   установщик Inno Setup, User-Agent, имена файлов экспорта и бэкапа.
 - Ссылки на репозиторий (issues, исходники, проверка обновлений), издатель
   Windows и GUID установщика (он же GUID уведомлений Windows).
+- Версия: `version` в `pubspec.yaml` берётся из `"version"` в `brand.json`.
+  У форка своя нумерация; номер сборки (`+N`) дописывают build-скрипты.
+  Тег релиза должен совпадать с версией (`v1.0.0`), это проверяет CI.
+- Иконка и фирменный цвет: `one_xray_blue` в `colors.xml` (фон заставки и
+  виджета) и файлы из [`files/`](files), которые заменяют одноимённые файлы
+  upstream: адаптивная иконка и иконка заставки Android, картинка виджета,
+  `app_icon.ico`, иконки трея, `assets/logo.png`, `assets/app_icon/blue.png`
+  (экран первой настройки).
+
+## Иконка
+
+Все файлы иконки строятся из одной геометрии в
+[`icon/generate.py`](icon/generate.py) (эталон: `icon/icon.svg`). После правки
+иконки выполните `python tool/rebrand/icon/generate.py` (нужны Inkscape и
+Pillow), затем `python tool/rebrand/rebrand.py` и закоммитьте результат.
+`rebrand.py` заменяет только существующие файлы: если upstream переименовал или
+удалил файл, `--check` сообщит об этом, и путь в `files/` нужно перенести.
 
 Сгенерированный код (`*.g.dart`, `*.g.kt`, `*.g.swift`) скрипт не правит.
 `Messages.g.kt` переносится вместе с пакетом, а затем его перегенерирует pigeon.
@@ -53,8 +70,11 @@ python -m unittest discover -s tool/rebrand/tests -p 'test_*.py'
 
 - `build_scripts/app/config.py` → `app.executable.windows` повторяет `BINARY_NAME`;
   тест `test_windows_packaging.py` проверяет, что значения совпадают.
-- Имена артефактов (`OneXray-windows-*.exe`, `OneXray-android-universal.apk`),
-  CI и публикация остаются как в upstream, пока не будет сделан шаг CI из `FORK_PLAN.md`.
+- Build-скрипты по-прежнему называют артефакты `OneXray-*`; CI форка
+  (`.github/workflows/bhsxray.yml`) переименовывает их в `BhsXRay-*`.
+- Android собирается только под `arm64-v8a`: `abiFilters` в
+  `android/app/build.gradle.kts` и `android.target_platforms` в
+  `build_scripts/app/config.py`.
 - При переносе Kotlin-файлов скрипт удаляет копию, восстановленную merge'ем,
   только если после ребрендинга она совпадает с файлом форка. Иначе он
   останавливается, и файлы нужно слить вручную.

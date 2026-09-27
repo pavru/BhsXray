@@ -19,9 +19,11 @@ PROJECT_CONFIG = {
         "core.bin.dst.file.windows": "app/OneXrayCore.exe",
         # Fork rebrand: matches BINARY_NAME in windows/CMakeLists.txt.
         "app.executable.windows": "BhsXRay.exe",
-        # Fork: build a locally signed universal APK instead of publishing an
+        # Fork: build a locally signed APK instead of publishing an
         # App Bundle through Google Play with fastlane.
         "android.package": "apk",
+        # Fork: arm64 only, matching abiFilters in android/app/build.gradle.kts.
+        "android.target_platforms": "android-arm64",
         # Fork: EXE builds omit VCore, which only the (disabled) MSIX mode uses.
         "windows.exe.vcore": False,
         "app.release.dir.android": "../build/app/outputs",

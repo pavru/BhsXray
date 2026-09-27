@@ -1,4 +1,6 @@
 {
+  "version": "1.0.0",
+  "files": "files",
   "upstream": {
     "name": "OneXray",
     "application_id": "net.yuandev.onexray",
@@ -6,7 +8,8 @@
     "link_host": "onexray.com",
     "github_repository": "OneXray/OneXray",
     "windows_publisher": "YuanDevLLC",
-    "windows_app_guid": "835d7bbd-85bb-4c73-97f8-ce0740f151a7"
+    "windows_app_guid": "835d7bbd-85bb-4c73-97f8-ce0740f151a7",
+    "color": "#007AFF"
   },
   "fork": {
     "name": "BhsXRay",
@@ -15,6 +18,7 @@
     "link_host": "bhsxray.pototskiy.net",
     "github_repository": "pavru/OneXray",
     "windows_publisher": "Alex Pototskiy",
-    "windows_app_guid": "292e71ae-61e0-439a-8310-20d2febca33d"
+    "windows_app_guid": "292e71ae-61e0-439a-8310-20d2febca33d",
+    "color": "#109E92"
   }
 }

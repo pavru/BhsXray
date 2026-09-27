@@ -2,10 +2,11 @@
 """Idempotent fork rebranding for the Android and Windows apps.
 
 Rewrites upstream identity (name, application ID, link scheme and host,
-repository, Windows publisher and installer GUID) into the fork identity from
-brand.json. Re-run it after every upstream merge; `--check` reports pending
-changes and any brand occurrence that is neither rewritten nor explicitly kept.
-Generated code is never edited: regenerate it after applying.
+repository, Windows publisher and installer GUID, brand color and version) into
+the fork identity from brand.json, and replaces icon files with the fork's
+copies from tool/rebrand/files. Re-run it after every upstream merge; `--check`
+reports pending changes and any brand occurrence that is neither rewritten nor
+explicitly kept. Generated code is never edited: regenerate it after applying.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
@@ -32,6 +33,8 @@ DART = ("lib", "test")
 APP = (*DART, "android/app/src", "windows/runner", "windows/CMakeLists.txt",
        "windows/packaging")
 MANIFEST = "android/app/src/main/AndroidManifest.xml"
+COLORS = "android/app/src/main/res/values/colors.xml"
+PUBSPEC = "pubspec.yaml"
 CHECKED = (*APP, "android", "windows", "pigeon/message.dart", "tool", "pubspec.yaml")
 
 BRAND_PATTERN = re.compile(r"(?i)onexray|yuan\s?dev")
@@ -76,6 +79,7 @@ class Brand:
     github_repository: str
     windows_publisher: str
     windows_app_guid: str
+    color: str
 
     @property
     def package_path(self) -> str:
@@ -108,21 +112,44 @@ class Report:
     moves: list[tuple[str, str]]
     changes: dict[str, dict[str, int]]
     residuals: list[tuple[str, int, str]]
+    replaced: list[str] = field(default_factory=list)
+    # Brand files whose upstream target is gone: the upstream layout changed.
+    missing: list[str] = field(default_factory=list)
 
     @property
     def pending(self) -> bool:
-        return bool(self.moves or self.changes)
+        return bool(self.moves or self.changes or self.replaced)
+
+
+@dataclass(frozen=True)
+class Config:
+    upstream: Brand
+    fork: Brand
+    version: str
+    files: Path
+
+
+def load_config(config: Path) -> Config:
+    data = json.loads(config.read_text(encoding="utf-8"))
+    return Config(Brand(**data["upstream"]), Brand(**data["fork"]), data["version"],
+                  config.parent / data["files"])
 
 
 def load_brands(config: Path) -> tuple[Brand, Brand]:
-    data = json.loads(config.read_text(encoding="utf-8"))
-    return Brand(**data["upstream"]), Brand(**data["fork"])
+    loaded = load_config(config)
+    return loaded.upstream, loaded.fork
 
 
-def build_rules(upstream: Brand, fork: Brand) -> list[Rule]:
+def build_rules(upstream: Brand, fork: Brand, version: str | None = None) -> list[Rule]:
     """Returns rules in application order; specific rules precede the name rule."""
     u = upstream
     scheme = re.escape(u.scheme)
+    version_rules = [] if version is None else [
+        # The fork numbers its own releases; builds append +BUILD_NUMBER.
+        Rule("version", (PUBSPEC,),
+             re.compile(rf"(?m)^version: (?!{re.escape(version)}(?![\w.-]))[^\s+]+"),
+             f"version: {version}"),
+    ]
 
     def token(pattern: str, extra: str = "") -> re.Pattern[str]:
         # A token starts after a non-word character or a string escape such as \n.
@@ -161,6 +188,11 @@ def build_rules(upstream: Brand, fork: Brand) -> list[Rule]:
         Rule("lowercase executable", DART,
              re.compile(rf"(?<![\w.-]){re.escape(u.name.lower())}\.exe(?!\w)"),
              f"{fork.name.lower()}.exe"),
+        # Splash screen and widget background behind the icon.
+        Rule("brand color", (COLORS,),
+             re.compile(rf"(?i)(?<=<color name=\"one_xray_blue\">){re.escape(u.color)}(?=</color>)"),
+             fork.color),
+        *version_rules,
         # Donations still fund upstream development, so that text keeps its name.
         # The lookbehind protects a fork repository that keeps the upstream name.
         Rule("display name", APP,
@@ -277,13 +309,43 @@ def apply_moves(root: Path, moves: list[tuple[str, str]], rules: list[Rule],
             directory = directory.parent
 
 
+def normalized(data: bytes) -> bytes:
+    # Git may check text files out with CRLF; compare them by content.
+    return data if b"\0" in data else data.replace(b"\r\n", b"\n")
+
+
+def brand_files(root: Path, files: Path, write: bool) -> tuple[list[str], list[str]]:
+    """Replaces upstream files with the fork's copies kept under `files`.
+
+    Only existing targets are replaced, so an upstream rename or removal is
+    reported instead of silently resurrecting the old path.
+    """
+    replaced, missing = [], []
+    if not files.is_dir():
+        return replaced, missing
+    for source in sorted(path for path in files.rglob("*") if path.is_file()):
+        path = source.relative_to(files).as_posix()
+        target = root / path
+        if not target.is_file():
+            missing.append(path)
+            continue
+        data = source.read_bytes()
+        if normalized(data) != normalized(target.read_bytes()):
+            replaced.append(path)
+            if write:
+                target.write_bytes(data)
+    return replaced, missing
+
+
 def run(root: Path, config: Path, write: bool) -> Report:
-    upstream, fork = load_brands(config)
-    rules = build_rules(upstream, fork)
+    loaded = load_config(config)
+    upstream, fork = loaded.upstream, loaded.fork
+    rules = build_rules(upstream, fork, loaded.version)
     kept = (*KEPT_PATTERNS, re.compile(re.escape(fork.github_repository)))
     moves = kotlin_moves(root, upstream, fork)
     if write:
         apply_moves(root, moves, rules, upstream)
+    replaced, missing = brand_files(root, loaded.files, write)
 
     moved = dict(moves)
     changes: dict[str, dict[str, int]] = {}
@@ -300,7 +362,8 @@ def run(root: Path, config: Path, write: bool) -> Report:
             if write:
                 (root / target).write_bytes(new_text.encode("utf-8"))
         found.extend(residuals(target, new_text, kept))
-    return Report(moves=moves, changes=changes, residuals=found)
+    return Report(moves=moves, changes=changes, residuals=found,
+                  replaced=replaced, missing=missing)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -323,6 +386,12 @@ def main(argv: list[str] | None = None) -> int:
     for path, counts in sorted(report.changes.items()):
         details = ", ".join(f"{name} x{count}" for name, count in counts.items())
         print(f"{verb} rewrite {path}: {details}")
+    for path in report.replaced:
+        print(f"{verb} replace {path} with the fork's copy")
+    if report.missing:
+        print("\nFork files without an upstream target (move them to the new path):")
+        for path in report.missing:
+            print(f"  {path}")
     if report.residuals:
         print("\nUnhandled brand occurrences (add a rule or a kept pattern):")
         for path, line, content in report.residuals:
@@ -333,9 +402,10 @@ def main(argv: list[str] | None = None) -> int:
         dart_files = [path for path in sorted(report.changes) if path.endswith(".dart")]
         if dart_files:
             print("      dart format " + " ".join(dart_files))
-    if not report.pending and not report.residuals:
+    failed = report.residuals or report.missing
+    if not report.pending and not failed:
         print("Rebrand is up to date.")
-    return 1 if report.residuals or (args.check and report.pending) else 0
+    return 1 if failed or (args.check and report.pending) else 0
 
 
 if __name__ == "__main__":
