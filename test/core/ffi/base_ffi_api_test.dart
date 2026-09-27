@@ -14,6 +14,7 @@ void main() {
         dns: '8.8.8.8',
         interfaceName: 'Ethernet',
         configPath: r'C:\run\xray.json',
+        configSha256: 'ab' * 32,
         errorFile: r'C:\run\xray.json.error',
       ),
       <String>[
@@ -24,6 +25,8 @@ void main() {
         'Ethernet',
         '-config',
         r'C:\run\xray.json',
+        '-config-sha256',
+        'ab' * 32,
         '-error-file',
         r'C:\run\xray.json.error',
       ],

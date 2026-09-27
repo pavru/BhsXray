@@ -182,9 +182,8 @@ class WindowsExeFfiApi extends WindowsFfiApi {
       await _verifyInstall(p.dirname(_corePath));
       await _stop();
       final request = await _readRequest();
-      final config = await materializeRunXrayConfig(
-        readRunXrayRequest(request),
-      );
+      final run = readRunXrayRequest(request);
+      final config = await materializeRunXrayConfig(run);
       if (config == null) {
         throw const FormatException('xrayJson is empty');
       }
@@ -198,6 +197,7 @@ class WindowsExeFfiApi extends WindowsFfiApi {
           dns: request.tun?.tunDnsIPv4 ?? '',
           interfaceName: request.tun?.autoOutboundsInterface ?? '',
           configPath: config,
+          configSha256: desktopCoreConfigSha256(run.request.xrayJson!),
           errorFile: errorFile.path,
         ),
       );

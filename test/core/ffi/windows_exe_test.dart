@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onexray/core/ffi/desktop_core_exit.dart';
 import 'package:onexray/core/ffi/windows/core_process.dart';
@@ -212,7 +213,15 @@ void main() {
         await File(process.arguments![6]).readAsString(),
         '{"inbounds":[]}',
       );
-      expect(process.arguments![7], '-error-file');
+      // The elevated Core refuses a config swapped after the App wrote it.
+      expect(process.arguments![7], '-config-sha256');
+      expect(
+        process.arguments![8],
+        sha256
+            .convert(await File(process.arguments![6]).readAsBytes())
+            .toString(),
+      );
+      expect(process.arguments![9], '-error-file');
       expect(process.arguments!.last, '${process.arguments![6]}.error');
       expect(await File(process.arguments!.last).readAsString(), isEmpty);
       expect(

@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
+
+import 'package:crypto/crypto.dart';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart' show protected;
@@ -16,6 +19,7 @@ List<String> desktopCoreRunArguments({
   required String dns,
   required String interfaceName,
   required String configPath,
+  String? configSha256,
   String? errorFile,
 }) {
   if (dns.isEmpty || interfaceName.isEmpty || configPath.isEmpty) {
@@ -31,9 +35,16 @@ List<String> desktopCoreRunArguments({
     interfaceName,
     '-config',
     configPath,
+    if (configSha256 != null) ...['-config-sha256', configSha256],
     if (errorFile != null) ...['-error-file', errorFile],
   ];
 }
+
+/// The SHA-256 of the configuration as [BaseFfiApi.materializeRunXrayConfig]
+/// writes it. An elevated Core verifies it, so a file swapped in the user's
+/// folder before the Core reads it is refused. Hash the text, never the file.
+String desktopCoreConfigSha256(String xrayJson) =>
+    sha256.convert(utf8.encode(xrayJson)).toString();
 
 File desktopCoreErrorFile(String configPath) => File('$configPath.error');
 
