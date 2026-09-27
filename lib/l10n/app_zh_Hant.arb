@@ -336,6 +336,8 @@
   "prototypeScanQrCode": "掃描 QR Code",
   "prototypePasteLink": "貼上連結",
   "prototypeAddSubscription": "新增訂閱",
+  "importExternalSubscriptionsTitle": "新增訂閱？",
+  "importExternalSubscriptionsMessage": "此連結、QR 碼或檔案將新增 {count} 個訂閱。其伺服器將立即下載，之後自動更新：\n{hosts}",
   "prototypeImportFile": "匯入檔案",
   "prototypeAddManually": "手動新增",
   "prototypeAddJsonManually": "手動新增 JSON",

@@ -71,6 +71,30 @@ void main() {
     await tester.pumpAndSettle();
     await tester.runAsync(() async {
       await tester.tap(find.text('Import file'));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    // Subscriptions from a file are confirmed first, showing only hosts:
+    // their URLs may carry access tokens.
+    final confirm = find.ancestor(
+      of: find.text('Add subscriptions?'),
+      matching: find.byType(ShadDialog),
+    );
+    expect(confirm, findsOneWidget);
+    expect(
+      find.descendant(
+        of: confirm,
+        matching: find.textContaining('example.com'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('personal.txt'), findsNothing);
+    expect(urls, isEmpty);
+    await tester.runAsync(() async {
+      await tester.tap(
+        find.descendant(of: confirm, matching: find.text('Add subscription')),
+      );
       await started.future.timeout(const Duration(seconds: 5));
     });
     await tester.pump();
@@ -109,6 +133,45 @@ void main() {
       isNotNull,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('app-link nodes are previewed, never saved directly', (
+    tester,
+  ) async {
+    var writes = 0;
+    final controller = ServerImportController(
+      loadSubscription: (_) async => null,
+      service: ServerImportService(
+        parse: (_) async => [
+          outboundCompanion({'tag': 'planted', 'protocol': 'freedom'}),
+        ],
+        write: (rows) async {
+          writes++;
+          return ConfigWriteResult(count: rows.length, ids: [1]);
+        },
+        schedule: (_) {},
+      ),
+    );
+    await tester.pumpWidget(
+      _app(
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showAppDialog<ServerImportResult>(
+              context,
+              (_) => ServersImportPage(
+                controller: controller,
+                initialText: 'vless://planted',
+              ),
+            ),
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    expect(find.text('Import preview'), findsWidgets);
+    expect(writes, 0);
   });
 
   testWidgets('node import reports success without confirmation', (

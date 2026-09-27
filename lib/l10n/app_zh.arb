@@ -336,6 +336,8 @@
   "prototypeScanQrCode": "扫描二维码",
   "prototypePasteLink": "粘贴链接",
   "prototypeAddSubscription": "添加订阅",
+  "importExternalSubscriptionsTitle": "添加订阅？",
+  "importExternalSubscriptionsMessage": "此链接、二维码或文件将添加 {count} 个订阅。其服务器将立即下载，之后自动更新：\n{hosts}",
   "prototypeImportFile": "导入文件",
   "prototypeAddManually": "手动添加",
   "prototypeAddJsonManually": "手动添加 JSON",

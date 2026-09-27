@@ -333,7 +333,7 @@ class ServerImportController extends PageCubit<ServerImportPageState> {
             : await _scan(context);
         emit(state.copyWith(busy: false, openingAction: null));
         if (input != null && isPageActive && context.mounted) {
-          result = await _importText(context, input);
+          result = await _importText(context, input, external: true);
         }
       } catch (error) {
         if (context.mounted) {
@@ -377,7 +377,7 @@ class ServerImportController extends PageCubit<ServerImportPageState> {
     _closingFlow = false;
     emit(state.copyWith(activeAction: ServerImportAction.paste));
     try {
-      final result = await _importText(context, input);
+      final result = await _importText(context, input, external: true);
       if ((result != null || _closingFlow) && context.mounted) {
         Navigator.of(context)
             .pop(result ?? state.committedResult ?? _subscriptionResult);
@@ -387,10 +387,14 @@ class ServerImportController extends PageCubit<ServerImportPageState> {
     }
   }
 
+  /// [external] content (app links, QR codes, files) was not written by the
+  /// user: nothing from it is saved without a confirmation. Otherwise a fast
+  /// planted node could win Automatic selection and carry the user's traffic.
   Future<ServerImportResult?> _importText(
     BuildContext context,
-    String input,
-  ) async {
+    String input, {
+    bool external = false,
+  }) async {
     final ServerImportDetection detection;
     try {
       detection = service.detect(input);
@@ -430,15 +434,30 @@ class ServerImportController extends PageCubit<ServerImportPageState> {
         ),
       );
     }
+    // Back only reopens the local draft; successful subscriptions are not
+    // downloaded and inserted again when Detect is pressed a second time.
+    var pending = detection.subscriptions
+        .where((link) => !_completedSubscriptions.containsKey(link.url))
+        .toList();
+    if (external && pending.isNotEmpty) {
+      final l10n = AppLocalizations.of(context)!;
+      // Hosts only: subscription URLs often carry access tokens.
+      final hosts = {
+        for (final link in pending) Uri.tryParse(link.url)?.host ?? link.url,
+      }.join('\n');
+      final confirmed = await ContextAlert.showConfirmDialog(
+        context,
+        title: l10n.importExternalSubscriptionsTitle,
+        content: l10n.importExternalSubscriptionsMessage(pending.length, hosts),
+        confirmLabel: l10n.prototypeAddSubscription,
+      );
+      if (!context.mounted) return null;
+      if (!confirmed) pending = [];
+    }
     emit(
       state.copyWith(busy: true, error: null, subscriptionImports: const []),
     );
     try {
-      // Back only reopens the local draft; successful subscriptions are not
-      // downloaded and inserted again when Detect is pressed a second time.
-      final pending = detection.subscriptions
-          .where((link) => !_completedSubscriptions.containsKey(link.url))
-          .toList();
       final results = await service.importSubscriptions(pending);
       for (var index = 0; index < results.length; index++) {
         if (results[index].result.success) {
@@ -459,7 +478,7 @@ class ServerImportController extends PageCubit<ServerImportPageState> {
     if (!context.mounted) return null;
     ServerImportResult? local;
     if (detection.localText.trim().isNotEmpty) {
-      local = await _preview(context, detection.localText);
+      local = await _preview(context, detection.localText, confirm: external);
     }
     if (local == null && state.importedSubscriptionCount == 0) return null;
     final result = ServerImportResult(
@@ -589,6 +608,7 @@ class ServerImportController extends PageCubit<ServerImportPageState> {
     BuildContext context,
     String input, {
     bool manual = false,
+    bool confirm = false,
   }) async {
     final revision = manual ? _jsonRevision : null;
     emit(
@@ -612,7 +632,8 @@ class ServerImportController extends PageCubit<ServerImportPageState> {
         emit(state.copyWith(error: error));
         return null;
       }
-      if (preview.rawCount == 0 &&
+      if (!confirm &&
+          preview.rawCount == 0 &&
           preview.customRoutes.isEmpty &&
           preview.geoData.isEmpty) {
         try {

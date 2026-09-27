@@ -336,6 +336,8 @@
     "prototypeScanQrCode": "اسکن کد QR",
     "prototypePasteLink": "چسباندن پیوند",
     "prototypeAddSubscription": "افزودن اشتراک",
+    "importExternalSubscriptionsTitle": "اشتراک‌ها اضافه شوند؟",
+    "importExternalSubscriptionsMessage": "این پیوند، کد QR یا فایل {count} اشتراک اضافه می‌کند. سرورهای آن‌ها اکنون دانلود و سپس به‌طور خودکار به‌روزرسانی می‌شوند:\n{hosts}",
     "prototypeImportFile": "وارد کردن فایل",
     "prototypeAddManually": "افزودن دستی",
     "prototypeAddJsonManually": "افزودن دستی JSON",

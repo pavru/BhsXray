@@ -336,6 +336,8 @@
   "prototypeScanQrCode": "Сканировать QR-код",
   "prototypePasteLink": "Вставить ссылку",
   "prototypeAddSubscription": "Добавить подписку",
+  "importExternalSubscriptionsTitle": "Добавить подписки?",
+  "importExternalSubscriptionsMessage": "Эта ссылка, QR-код или файл добавляет подписки: {count}. Их серверы будут загружены сейчас и затем будут обновляться автоматически:\n{hosts}",
   "prototypeImportFile": "Импорт файла",
   "prototypeAddManually": "Добавить вручную",
   "prototypeAddJsonManually": "Добавить JSON вручную",

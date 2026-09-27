@@ -822,6 +822,22 @@
     "description": "Approved prototype copy: Paste link"
   },
   "prototypeAddSubscription": "Add subscription",
+  "importExternalSubscriptionsTitle": "Add subscriptions?",
+  "@importExternalSubscriptionsTitle": {
+    "description": "Title of the confirmation for subscriptions found in an app link, QR code or file."
+  },
+  "importExternalSubscriptionsMessage": "This link, QR code or file adds {count} subscriptions. Their servers will be downloaded now and updated automatically later:\n{hosts}",
+  "@importExternalSubscriptionsMessage": {
+    "description": "Confirms subscriptions found in an app link, QR code or file before they are downloaded.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "hosts": {
+        "type": "String"
+      }
+    }
+  },
   "@prototypeAddSubscription": {
     "description": "Approved prototype copy: Add subscription"
   },
