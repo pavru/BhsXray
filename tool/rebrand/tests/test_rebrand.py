@@ -173,6 +173,19 @@ class RebrandTest(unittest.TestCase):
         self.assertEqual(report.residuals,
                          [("lib/unknown.dart", 1, "const vendor = 'yuandev';")])
 
+    def test_play_store_link_opens_fork_releases(self):
+        self.write("lib/update.dart", "\n".join((
+            'const a = "https://play.google.com/store/apps/details?id=net.yuandev.onexray";',
+            'const b = "https://play.google.com/store/apps/details?id=net.pototskiy.bhsxray";',
+            "",
+        )))
+
+        self.run_rebrand()
+
+        releases = "https://github.com/pavru/OneXray/releases/latest"
+        self.assertEqual(self.read("lib/update.dart"),
+                         f'const a = "{releases}";\nconst b = "{releases}";\n')
+
     def test_version_and_brand_color_follow_brand_config(self):
         self.write("pubspec.yaml", "name: onexray\nversion: 26.9.5+1\n")
         self.write(rebrand.COLORS, '<color name="one_xray_blue">#007aff</color>\n'

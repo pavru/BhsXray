@@ -168,6 +168,11 @@ def build_rules(upstream: Brand, fork: Brand, version: str | None = None) -> lis
         Rule("windows publisher", ("windows/runner", "windows/packaging"),
              re.compile(rf"(?<![\w.]){re.escape(u.windows_publisher)}(?![\w.])"),
              fork.windows_publisher),
+        # The fork is not on Google Play: Android updates open its GitHub releases.
+        Rule("play store url", DART,
+             re.compile(r"https://play\.google\.com/store/apps/details\?id="
+                        rf"(?:{re.escape(u.application_id)}|{re.escape(fork.application_id)})(?![\w.])"),
+             f"https://github.com/{fork.github_repository}/releases/latest"),
         Rule("application id",
              (*APP, "android/app/build.gradle.kts", "android/fastlane", "pigeon/message.dart"),
              re.compile(rf"(?<![\w.]){re.escape(u.application_id)}(?!\w)(?!\.desktop\b)"),

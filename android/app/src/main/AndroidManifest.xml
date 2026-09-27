@@ -20,6 +20,8 @@
     <!-- Routed dialogs currently complete twice during Android predictive back. -->
     <application
         android:name="${applicationName}"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="false"
         android:icon="@mipmap/ic_launcher"
         android:label="BhsXRay"
