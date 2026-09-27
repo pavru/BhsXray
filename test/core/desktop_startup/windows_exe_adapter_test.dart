@@ -121,10 +121,10 @@ void main() {
     expect(store.shortcut?.arguments, isEmpty);
   });
 
-  test('enabling replaces a missing OneXray shortcut target', () async {
+  test('enabling replaces a missing BhsXRay shortcut target', () async {
     final executable = Platform.resolvedExecutable;
     final store = _FakeWindowsLaunchAtLoginStore(
-      shortcut: _shortcut(r'C:\Removed\OneXray.exe'),
+      shortcut: _shortcut(r'C:\Removed\BhsXRay.exe'),
     );
     final adapter = WindowsExeLaunchAtLoginAdapter(
       executable: executable,
@@ -176,7 +176,7 @@ String _createOtherOneXrayExecutable() {
             ..createSync(recursive: true))
           .createTempSync('onexray-startup-test-');
   addTearDown(() => directory.deleteSync(recursive: true));
-  final executable = File(path.join(directory.path, 'OneXray.exe'));
+  final executable = File(path.join(directory.path, 'BhsXRay.exe'));
   executable.writeAsStringSync('test');
   return executable.path;
 }

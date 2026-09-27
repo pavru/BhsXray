@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 
+from app.config import PROJECT_CONFIG
 from app.windows import (
     WindowsBuilder,
     _copy_vcore_artifacts,
@@ -19,6 +20,8 @@ from app.windows import (
     _WINTUN_VERSION,
 )
 from app.windows_msix import augment_manifest, package_with_vcore
+
+_EXECUTABLE = PROJECT_CONFIG["OneXray"]["app.executable.windows"]
 
 
 class WindowsPackagingTest(unittest.TestCase):
@@ -36,6 +39,7 @@ class WindowsPackagingTest(unittest.TestCase):
 
         self.builder = WindowsBuilder.__new__(WindowsBuilder)
         self.builder.project = "OneXray"
+        self.builder.project_config = PROJECT_CONFIG["OneXray"]
         self.builder.root_dir = self.temp_dir.name
         self.builder.project_dir = self.project_dir
         self.builder.workspace_dir = self.temp_dir.name
@@ -74,7 +78,7 @@ class WindowsPackagingTest(unittest.TestCase):
                   self.builder.target_architecture / "runner/Release")
         source.mkdir(parents=True, exist_ok=True)
         runtime_files = self.builder._required_crt_files()
-        for name in ("OneXray.exe", "flutter_windows.dll", *_RUNTIME_FILES, *runtime_files):
+        for name in (_EXECUTABLE, "flutter_windows.dll", *_RUNTIME_FILES, *runtime_files):
             (source / name).write_bytes(_pe(self.builder._machine()))
         for name in ("data/icudtl.dat", "data/app.so", "data/flutter_assets/AssetManifest.bin",
                      "data/flutter_assets/assets/dat/geoip.dat", "plugin.dll"):
@@ -223,8 +227,10 @@ class WindowsPackagingTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         installer = (root / "windows/packaging/exe/inno_setup.iss").read_text()
         config = (root / "windows/packaging/exe/make_config.yaml").read_text()
-        self.assertIn("app_id: 835d7bbd-85bb-4c73-97f8-ce0740f151a7", config)
-        self.assertIn("executable_name: OneXray.exe", config)
+        cmake = (root / "windows/CMakeLists.txt").read_text()
+        self.assertIn("app_id: 292e71ae-61e0-439a-8310-20d2febca33d", config)
+        self.assertIn(f"executable_name: {_EXECUTABLE}", config)
+        self.assertIn(f'set(BINARY_NAME "{_EXECUTABLE.removesuffix(".exe")}")', cmake)
         self.assertIn("privileges_required: lowest", config)
         self.assertIn("AppId={{APP_ID}}", installer)
         self.assertIn("PrivilegesRequired={{PRIVILEGES_REQUIRED}}", installer)
@@ -401,7 +407,7 @@ class WindowsPackagingTest(unittest.TestCase):
                     "arm64",
                     "runner",
                     "Release",
-                    "OneXray.exe",
+                    _EXECUTABLE,
                 )
             )
         )

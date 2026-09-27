@@ -159,7 +159,7 @@ class AutoUpdatePage extends StatelessWidget {
                                 trailing: SettingSelect<DownloadUserAgentMode>(
                                   value: state.userAgent,
                                   entries: {
-                                    DownloadUserAgentMode.oneXray: 'OneXray',
+                                    DownloadUserAgentMode.oneXray: 'BhsXRay',
                                     DownloadUserAgentMode.system:
                                         l.prototypeSystemBrowser,
                                   },

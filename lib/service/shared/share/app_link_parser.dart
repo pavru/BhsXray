@@ -6,8 +6,8 @@ import 'package:onexray/service/shared/share/app_link_model.dart';
 import 'package:onexray/service/servers/subscription/model.dart';
 
 abstract final class OneXrayAppLinkParser {
-  static const scheme = 'onexray';
-  static const host = 'onexray.com';
+  static const scheme = 'bhsxray';
+  static const host = 'bhsxray.pototskiy.net';
 
   static const configPath = '/config/add';
   static const subscriptionPath = '/sub/add';

@@ -147,7 +147,7 @@ class WindowsBuilder(Builder):
         source = (Path(self.root_dir) / "build" / "windows" /
                   self.target_architecture / "runner" / "Release")
         for name in (
-            f"{self.project}.exe", "flutter_windows.dll", *_RUNTIME_FILES,
+            self.project_config["app.executable.windows"], "flutter_windows.dll", *_RUNTIME_FILES,
             *self._required_crt_files(),
         ):
             artifact = source / name

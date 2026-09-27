@@ -8,7 +8,7 @@ void main() {
   test(
     'Android tile shares native saved start with an App shortcut fallback',
     () {
-      const native = 'android/app/src/main/kotlin/net/yuandev/onexray';
+      const native = 'android/app/src/main/kotlin/net/pototskiy/bhsxray';
       final controller = File('$native/vpn/VpnController.kt')
           .readAsStringSync();
       final tile = File('$native/tile/OneQuickSettingsTileService.kt')
@@ -57,7 +57,7 @@ void main() {
   );
 
   test('only a saved native start renews session metadata', () {
-    const native = 'android/app/src/main/kotlin/net/yuandev/onexray';
+    const native = 'android/app/src/main/kotlin/net/pototskiy/bhsxray';
     final service = File('$native/vpn/OneVpnService.kt').readAsStringSync();
     expect(service, contains('if (backgroundStart)'));
     expect(service, contains('SavedVpnConfig.renewSession'));

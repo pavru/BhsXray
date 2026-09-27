@@ -203,10 +203,10 @@ void main() {
     expect(validations, 2);
   });
 
-  test('OneXray node links use the existing decoder; subscriptions stay read-only form inputs', () async {
+  test('BhsXRay node links use the existing decoder; subscriptions stay read-only form inputs', () async {
     final link = Uri(
-      scheme: 'onexray',
-      host: 'onexray.com',
+      scheme: 'bhsxray',
+      host: 'bhsxray.pototskiy.net',
       path: '/config/add',
       queryParameters: {
         'type': 'outbound',
@@ -417,15 +417,15 @@ void main() {
 }
 
 String _configLink(String type, String json) => Uri(
-  scheme: 'onexray',
-  host: 'onexray.com',
+  scheme: 'bhsxray',
+  host: 'bhsxray.pototskiy.net',
   path: '/config/add',
   queryParameters: {'type': type, 'data': base64Encode(utf8.encode(json))},
 ).toString();
 
 String _geoLink(String name) => Uri(
-  scheme: 'onexray',
-  host: 'onexray.com',
+  scheme: 'bhsxray',
+  host: 'bhsxray.pototskiy.net',
   path: '/dat/add',
   fragment: name,
   queryParameters: {'type': 'domain', 'url': 'https://data.example/list.dat'},

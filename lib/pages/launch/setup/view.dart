@@ -53,7 +53,7 @@ class SetupView extends StatelessWidget {
                   children: [
                     if (welcome) ...[
                       Text(
-                        'OneXray',
+                        'BhsXRay',
                         textAlign: TextAlign.center,
                         style: AppTypography.setupBrand,
                       ),

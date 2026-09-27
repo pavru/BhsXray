@@ -14,7 +14,7 @@ void main() {
       'onexray-linux-autostart-',
     );
     executable = File(
-      path.join(temporaryDirectory.path, r'OneXray $100% Test'),
+      path.join(temporaryDirectory.path, r'BhsXRay $100% Test'),
     );
     await executable.writeAsString('');
   });
@@ -81,9 +81,9 @@ void main() {
     await desktopFile.writeAsString(
       '[Desktop Entry]\n'
       'Type=Application\n'
-      'Name=OneXray\n'
-      'Exec="/old/OneXray"\n'
-      'TryExec=/old/OneXray\n'
+      'Name=BhsXRay\n'
+      'Exec="/old/BhsXRay"\n'
+      'TryExec=/old/BhsXRay\n'
       'Terminal=false\n',
     );
 

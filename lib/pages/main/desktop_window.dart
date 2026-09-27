@@ -112,7 +112,7 @@ class _DesktopWindowFrameState extends State<DesktopWindowFrame>
                       backgroundColor: palette.header,
                       brightness: theme.brightness,
                       title: Text(
-                        'OneXray',
+                        'BhsXRay',
                         style: AppTypography.supporting.copyWith(
                           color: palette.foreground,
                         ),

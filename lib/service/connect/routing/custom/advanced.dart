@@ -359,7 +359,7 @@ void _keys(Map<String, dynamic> value, Set<String> allowed, List<Object> path) {
 bool _internal(String tag) =>
     tag.startsWith('app-entry-') || tag.startsWith('app-exit-');
 Never _managed(List<Object> path, {String? label}) => throw JsonDiagnostic(
-  '${label ?? _pathLabel(path)} is managed by OneXray; use App settings',
+  '${label ?? _pathLabel(path)} is managed by BhsXRay; use App settings',
   path: path,
 );
 void _definition(Object? tag, List<Object> path, Set<String> tags) {

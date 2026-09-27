@@ -15,7 +15,7 @@ void main() {
     addTearDown(bus.close);
   });
 
-  for (final source in ['{\n  "outbounds": [}', 'onexray://invalid']) {
+  for (final source in ['{\n  "outbounds": [}', 'bhsxray://invalid']) {
     testWidgets('import locates only original JSON: $source', (tester) async {
       String? copied;
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

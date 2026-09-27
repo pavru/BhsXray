@@ -7,7 +7,7 @@ import 'package:share_plus_platform_interface/share_plus_platform_interface.dart
 void main() {
   const content = ShareText(
     title: '  Example  ',
-    text: 'onexray://example.test/first\nonexray://example.test/second\n',
+    text: 'bhsxray://example.test/first\nbhsxray://example.test/second\n',
   );
   const origin = Rect.fromLTWH(10, 20, 100, 40);
 
@@ -52,8 +52,8 @@ void main() {
       ),
     );
     await share.sendText(const ShareText(title: '  ', text: ' exact text '));
-    expect(sent.title, 'OneXray');
-    expect(sent.subject, 'OneXray');
+    expect(sent.title, 'BhsXRay');
+    expect(sent.subject, 'BhsXRay');
     expect(sent.text, ' exact text ');
     expect(sent.sharePositionOrigin, isNull);
   });

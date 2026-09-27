@@ -1,7 +1,7 @@
 import 'package:home_widget/home_widget.dart';
 
 class TrafficWidgetService {
-  static const provider = 'net.yuandev.onexray.widget.TrafficWidgetProvider';
+  static const provider = 'net.pototskiy.bhsxray.widget.TrafficWidgetProvider';
 
   Future<bool> requestPin() async {
     if (await HomeWidget.isRequestPinWidgetSupported() != true) return false;

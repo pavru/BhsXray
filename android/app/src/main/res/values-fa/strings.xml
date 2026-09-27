@@ -7,10 +7,10 @@
     <string name="traffic_start_vpn">شروع VPN</string>
     <string name="traffic_stop_vpn">توقف VPN</string>
     <string name="traffic_widget_disconnected">قطع است</string>
-    <string name="traffic_widget_name">ترافیک OneXray</string>
+    <string name="traffic_widget_name">ترافیک BhsXRay</string>
     <string name="traffic_widget_description">وضعیت VPN، سرعت و ترافیک این اتصال</string>
     <string name="traffic_this_connection">این اتصال</string>
-    <string name="quick_settings_tile_label">OneXray</string>
+    <string name="quick_settings_tile_label">BhsXRay</string>
     <string name="quick_settings_tile_status_connected">متصل</string>
     <string name="quick_settings_tile_status_connecting">در حال اتصال</string>
     <string name="quick_settings_tile_status_disconnected">قطع شده</string>

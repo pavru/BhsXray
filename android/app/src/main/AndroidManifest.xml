@@ -22,7 +22,7 @@
         android:name="${applicationName}"
         android:enableOnBackInvokedCallback="false"
         android:icon="@mipmap/ic_launcher"
-        android:label="OneXray"
+        android:label="BhsXRay"
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         tools:targetApi="tiramisu">
@@ -55,8 +55,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:host="onexray.com"
-                    android:scheme="onexray" />
+                    android:host="bhsxray.pototskiy.net"
+                    android:scheme="bhsxray" />
             </intent-filter>
         </activity>
         <receiver

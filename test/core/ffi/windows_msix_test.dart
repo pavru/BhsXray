@@ -144,7 +144,7 @@ void main() {
               'success': true,
               'error': '',
               'data': {
-                'packageFamilyName': 'OneXray.Test',
+                'packageFamilyName': 'BhsXRay.Test',
                 'packageLocalDataDir': directory.path,
               },
             });

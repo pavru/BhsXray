@@ -8,7 +8,7 @@ import 'package:onexray/pages/shared/widgets/settings_page.dart';
 
 const _open = Key('open-confirmation');
 const _filename =
-    'OneXray-2026-09-03-user-servers-subscriptions-Age-keys-custom-routing-'
+    'BhsXRay-2026-09-03-user-servers-subscriptions-Age-keys-custom-routing-'
     'Raw-JSON-and-custom-Geodata.json';
 
 enum _Action { delete, restore, export, clear }

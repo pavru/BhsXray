@@ -33,7 +33,7 @@ class GoRouteApp extends StatelessWidget {
         final mobile = constraints.maxWidth <= AppLayout.mobileBreakpoint;
         return MaterialApp.router(
           debugShowCheckedModeBanner: false,
-          title: "OneXray",
+          title: "BhsXRay",
           themeMode: state.themeCode.themeMode,
           theme: AppTheme.material(Brightness.light, mobile: mobile),
           darkTheme: AppTheme.material(Brightness.dark, mobile: mobile),

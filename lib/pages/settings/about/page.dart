@@ -64,7 +64,7 @@ class AboutOneXrayPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 9),
-                          Text('OneXray', style: AppTypography.aboutBrandTitle),
+                          Text('BhsXRay', style: AppTypography.aboutBrandTitle),
                           const SizedBox(height: 9),
                           Text(
                             l10n.prototypeCrossPlatformXrayClient,

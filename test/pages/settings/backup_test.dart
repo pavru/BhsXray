@@ -103,7 +103,7 @@ void main() {
           preferences.settings = const BackupSettings(
             target: BackupTarget(
               'fixture',
-              'OneDrive / a-very-long-selected-directory-name / OneXray-backup.json',
+              'OneDrive / a-very-long-selected-directory-name / BhsXRay-backup.json',
             ),
           );
           await tester.pumpWidget(app(locale));

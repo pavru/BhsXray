@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onexray/core/network/user_agent.dart';
 
 void main() {
-  const fallback = 'OneXray/fallback';
+  const fallback = 'BhsXRay/fallback';
 
   for (final platform in [
     DownloadUserAgentPlatform.android,
@@ -86,7 +86,7 @@ void main() {
     expect(result, fallback);
   });
 
-  test('OneXray mode bypasses the system browser User-Agent', () async {
+  test('BhsXRay mode bypasses the system browser User-Agent', () async {
     var readerCalled = false;
     final result = await DownloadUserAgent.resolveForPlatform(
       mode: DownloadUserAgentMode.oneXray,
@@ -113,7 +113,7 @@ void main() {
     );
   });
 
-  test('missing or unknown persisted modes default to OneXray', () {
+  test('missing or unknown persisted modes default to BhsXRay', () {
     expect(DownloadUserAgentMode.defaultMode, DownloadUserAgentMode.oneXray);
     expect(
       DownloadUserAgentMode.fromString(null),

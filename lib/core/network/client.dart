@@ -61,12 +61,12 @@ class NetClient {
   Future<String> _oneXrayUserAgent() async {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
-      return 'OneXray/${packageInfo.version} '
+      return 'BhsXRay/${packageInfo.version} '
           '(${packageInfo.packageName}; build:${packageInfo.buildNumber}; '
           '${Platform.operatingSystem})';
     } catch (error) {
-      ygLogger('Unable to build the OneXray User-Agent: $error');
-      return 'OneXray (${Platform.operatingSystem})';
+      ygLogger('Unable to build the BhsXRay User-Agent: $error');
+      return 'BhsXRay (${Platform.operatingSystem})';
     }
   }
 

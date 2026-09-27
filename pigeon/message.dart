@@ -4,9 +4,8 @@ import 'package:pigeon/pigeon.dart';
   PigeonOptions(
     dartOut: 'lib/core/pigeon/messages.g.dart',
     dartOptions: DartOptions(),
-    kotlinOut:
-        'android/app/src/main/kotlin/net/yuandev/onexray/pigeon/Messages.g.kt',
-    kotlinOptions: KotlinOptions(package: "net.yuandev.onexray.pigeon"),
+    kotlinOut: 'android/app/src/main/kotlin/net/pototskiy/bhsxray/pigeon/Messages.g.kt',
+    kotlinOptions: KotlinOptions(package: "net.pototskiy.bhsxray.pigeon"),
     swiftOut: 'swift/App/pigeon/Messages.g.swift',
     swiftOptions: SwiftOptions(),
     dartPackageName: 'onexray',

@@ -29,10 +29,10 @@ void main() {
 
   test('Android startup queries include the API 37 local network grant', () {
     final native = File(
-      'android/app/src/main/kotlin/net/yuandev/onexray/pigeon/HostApi.kt',
+      'android/app/src/main/kotlin/net/pototskiy/bhsxray/pigeon/HostApi.kt',
     ).readAsStringSync();
     final controller = File(
-      'android/app/src/main/kotlin/net/yuandev/onexray/vpn/VpnController.kt',
+      'android/app/src/main/kotlin/net/pototskiy/bhsxray/vpn/VpnController.kt',
     ).readAsStringSync();
     final manifest = File('android/app/src/main/AndroidManifest.xml')
         .readAsStringSync();

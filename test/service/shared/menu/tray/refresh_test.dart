@@ -116,7 +116,7 @@ void main() {
       calls
           .where((call) => call.method == 'setToolTip')
           .map((call) => call.arguments['toolTip']),
-      everyElement('OneXray'),
+      everyElement('BhsXRay'),
     );
     expect(_items(menus.last).any((item) => item['key'] == 'stopVpn'), isTrue);
 

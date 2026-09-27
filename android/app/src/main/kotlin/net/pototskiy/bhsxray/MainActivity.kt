@@ -1,0 +1,85 @@
+package net.pototskiy.bhsxray
+
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
+import android.os.Bundle
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.elvishew.xlog.XLog
+import io.flutter.embedding.android.FlutterFragmentActivity
+import io.flutter.embedding.engine.FlutterEngine
+import net.pototskiy.bhsxray.pigeon.AppFlutterApi
+import net.pototskiy.bhsxray.pigeon.AppHostApi
+import net.pototskiy.bhsxray.pigeon.BridgeHostApi
+import net.pototskiy.bhsxray.pigeon.BackupHostApi
+import net.pototskiy.bhsxray.pigeon.BackupApi
+import net.pototskiy.bhsxray.vpn.OneVpnService
+
+class MainActivity : FlutterFragmentActivity() {
+
+    private val hostApi = AppHostApi(this)
+    private val backupApi = BackupApi(this)
+    private var vpnStatusReceiver: BroadcastReceiver? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+        super.onCreate(savedInstanceState)
+        registerVpnStatusReceiver()
+    }
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+
+        val flutterApi = AppFlutterApi(flutterEngine.dartExecutor)
+        BridgeHostApi.setUp(flutterEngine.dartExecutor, hostApi)
+        BackupHostApi.setUp(flutterEngine.dartExecutor, backupApi)
+
+        hostApi.onInit(flutterApi)
+    }
+
+    // 接收器在 onCreate 中注册、onDestroy 中注销，避免在 onPause（系统弹窗导致 Activity 暂停）
+    // 期间错过 OneVpnService 发出的 VPN 状态广播，否则 Dart 侧会因收不到 CONNECTED 而超时断开。
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private fun registerVpnStatusReceiver() {
+        if (vpnStatusReceiver != null) {
+            return
+        }
+        vpnStatusReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == OneVpnService.ACTION_VPN_STATUS) {
+                    val running = intent.getBooleanExtra(OneVpnService.EXTRA_RUNNING, false)
+                    XLog.d("MainActivity: received VPN status changed: $running")
+                    // 将状态交给现有 hostApi（可触发 Flutter 通知或内部状态更新）
+                    hostApi.onVpnStatusChanged(running, intent.getStringExtra(OneVpnService.EXTRA_ERROR))
+                }
+            }
+        }
+        val filter = IntentFilter(OneVpnService.ACTION_VPN_STATUS).apply {
+            priority = IntentFilter.SYSTEM_HIGH_PRIORITY
+        }
+        vpnStatusReceiver?.let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(it, filter, RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(it, filter)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        backupApi.dispose()
+        hostApi.onDestroy()
+        // 防御式注销
+        vpnStatusReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (_: Exception) {
+            }
+        }
+        vpnStatusReceiver = null
+        super.onDestroy()
+    }
+}

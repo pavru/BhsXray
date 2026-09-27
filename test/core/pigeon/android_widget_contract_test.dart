@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const native = 'android/app/src/main/kotlin/net/yuandev/onexray';
+  const native = 'android/app/src/main/kotlin/net/pototskiy/bhsxray';
   const resources = 'android/app/src/main/res';
 
   test('native metrics allow cleartext only for exact loopback', () {

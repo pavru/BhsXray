@@ -117,7 +117,7 @@ class AppIconChoiceView extends StatelessWidget {
                 children: [
                   _iconImage(_imageFor(selected), 100),
                   const SizedBox(height: 9),
-                  Text('OneXray', style: AppTypography.iconPreviewBrand),
+                  Text('BhsXRay', style: AppTypography.iconPreviewBrand),
                   const SizedBox(height: 9),
                   Text(
                     useDockIconAssets

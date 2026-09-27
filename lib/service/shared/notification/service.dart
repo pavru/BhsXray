@@ -26,10 +26,10 @@ final class NotificationService {
     );
     final WindowsInitializationSettings initializationSettingsWindows =
         WindowsInitializationSettings(
-          appName: 'OneXray',
-          appUserModelId: 'net.yuandev.onexray',
+          appName: 'BhsXRay',
+          appUserModelId: 'net.pototskiy.bhsxray',
           // Search online for GUID generators to make your own
-          guid: '835d7bbd-85bb-4c73-97f8-ce0740f151a7',
+          guid: '292e71ae-61e0-439a-8310-20d2febca33d',
         );
     final initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
@@ -79,12 +79,12 @@ final class NotificationService {
     if (AppPlatform.isAndroid) {
       const details = NotificationDetails(
         android: AndroidNotificationDetails(
-          'net.yuandev.onexray',
-          'OneXray',
-          channelDescription: 'OneXray',
+          'net.pototskiy.bhsxray',
+          'BhsXRay',
+          channelDescription: 'BhsXRay',
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
-          ticker: 'OneXray',
+          ticker: 'BhsXRay',
         ),
       );
       await _localNotification.show(

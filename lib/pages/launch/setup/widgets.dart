@@ -66,7 +66,7 @@ class SetupDesktopBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('OneXray', style: AppTypography.setupBrand),
+          Text('BhsXRay', style: AppTypography.setupBrand),
           const SizedBox(height: 10),
           Center(
             child: ConstrainedBox(

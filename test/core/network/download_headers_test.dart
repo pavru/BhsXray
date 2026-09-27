@@ -17,15 +17,15 @@ void main() {
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();
     PackageInfo.setMockInitialValues(
-      appName: 'OneXray',
-      packageName: 'net.yuandev.onexray',
+      appName: 'BhsXRay',
+      packageName: 'net.pototskiy.bhsxray',
       version: '1.0.0',
       buildNumber: '1',
       buildSignature: '',
     );
   });
 
-  test('uses the default OneXray UA for an unrelated download', () async {
+  test('uses the default BhsXRay UA for an unrelated download', () async {
     String? receivedAgeHeader;
     String? receivedUserAgent;
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -43,8 +43,8 @@ void main() {
     expect(receivedAgeHeader, isNull);
     expect(
       receivedUserAgent,
-      'OneXray/1.0.0 '
-      '(net.yuandev.onexray; build:1; ${Platform.operatingSystem})',
+      'BhsXRay/1.0.0 '
+      '(net.pototskiy.bhsxray; build:1; ${Platform.operatingSystem})',
     );
     expect(NetClient().downloadUserAgent, receivedUserAgent);
   });

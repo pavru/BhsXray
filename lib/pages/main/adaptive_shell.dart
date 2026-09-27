@@ -241,7 +241,7 @@ class _AdaptiveMainShellState extends State<AdaptiveMainShell> {
                             : AppSpacing.sidebarBrandBottom,
                       ),
                       child: Text(
-                        'OneXray',
+                        'BhsXRay',
                         style: AppTypography.desktopBrand.copyWith(
                           color: palette.brand,
                         ),

@@ -244,7 +244,7 @@ final class TrayService with TrayListener {
     await trayManager.setIcon(icon);
     if (AppPlatform.isMacOS) {
       await trayManager.setTitle('');
-      await trayManager.setToolTip('OneXray');
+      await trayManager.setToolTip('BhsXRay');
     }
   }
 
