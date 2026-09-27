@@ -56,6 +56,14 @@ def source_revision(path: Path, expected: str | None = None) -> str:
     return revision
 
 
+def _android_architectures(builder) -> list[str]:
+    platforms = builder.project_config.get(
+        "android.target_platforms", "android-arm64,android-x64",
+    )
+    names = {"android-arm64": "arm64", "android-x64": "x86_64", "android-arm": "arm"}
+    return [names[platform] for platform in platforms.split(",")]
+
+
 def _uses_vcore(builder, target: str) -> bool:
     # A Windows EXE build may omit VCore (windows.exe.vcore).
     return target == "windows" and getattr(builder.builder, "uses_vcore", True)
@@ -89,7 +97,7 @@ def begin_build(builder, target: str) -> dict:
         ),
         "targetArchitectures": {
             "ios": ["arm64"], "macos": ["arm64", "x86_64"],
-            "macos_se": ["arm64", "x86_64"], "android": ["arm64", "x86_64"],
+            "macos_se": ["arm64", "x86_64"], "android": _android_architectures(builder),
         }.get(target, [getattr(
             builder.builder, "target_architecture", platform.machine().lower(),
         )]),

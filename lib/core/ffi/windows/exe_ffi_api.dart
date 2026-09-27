@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:onexray/core/ffi/base_ffi_api.dart';
 import 'package:onexray/core/ffi/desktop_core_exit.dart';
 import 'package:onexray/core/ffi/windows/core_process.dart';
 import 'package:onexray/core/ffi/windows/ffi_api.dart';
+import 'package:onexray/core/ffi/windows/install_protection.dart';
 import 'package:onexray/core/ffi/windows/model.dart';
 import 'package:onexray/core/pigeon/flutter_api.dart';
 import 'package:onexray/core/pigeon/messages.g.dart';
@@ -20,6 +22,7 @@ class WindowsExeFfiApi extends WindowsFfiApi {
   final Future<StartVpnRequest> Function() _readRequest;
   final Future<void> Function(VpnStatus) _notify;
   final void Function(Object) _notifyError;
+  final Future<void> Function(String directory) _verifyInstall;
   final _exitWatches = <int, DesktopCoreExitWatch>{};
   // Cancelling waits also invalidates the reads already triggered by their exits.
   int _watchGeneration = 0;
@@ -34,6 +37,7 @@ class WindowsExeFfiApi extends WindowsFfiApi {
     Future<StartVpnRequest> Function()? readRequest,
     Future<void> Function(VpnStatus)? notify,
     void Function(Object)? notifyError,
+    Future<void> Function(String directory)? verifyInstall,
   }) : _process = process ?? WindowsCoreProcess(),
        _corePath =
            executable ??
@@ -42,6 +46,10 @@ class WindowsExeFfiApi extends WindowsFfiApi {
        _notify = notify ?? AppFlutterApi().vpnStatusChanged,
        _notifyError =
            notifyError ?? AppFlutterApi().vpnStatusController.addError,
+       // Debug builds run from the user's build directory.
+       _verifyInstall =
+           verifyInstall ??
+           (kReleaseMode ? verifyProtectedInstall : (_) async {}),
        super.base();
 
   @override
@@ -171,6 +179,7 @@ class WindowsExeFfiApi extends WindowsFfiApi {
     var launchAttempted = false;
     try {
       await _notify(VpnStatus.connecting);
+      await _verifyInstall(p.dirname(_corePath));
       await _stop();
       final request = await _readRequest();
       final config = await materializeRunXrayConfig(

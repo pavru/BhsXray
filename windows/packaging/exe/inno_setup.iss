@@ -37,13 +37,13 @@ Name: "{autoprograms}\{{DISPLAY_NAME}}"; Filename: "{app}\{{EXECUTABLE_NAME}}"; 
 Name: "{autodesktop}\{{DISPLAY_NAME}}"; Filename: "{app}\{{EXECUTABLE_NAME}}"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Registry]
-Root: HKCU; Subkey: "Software\Classes\bhsxray"; ValueType: string; ValueName: ""; ValueData: "URL:BhsXRay Protocol"
-Root: HKCU; Subkey: "Software\Classes\bhsxray"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
-Root: HKCU; Subkey: "Software\Classes\bhsxray\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: """{app}\{{EXECUTABLE_NAME}}"",0"
-Root: HKCU; Subkey: "Software\Classes\bhsxray\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{{EXECUTABLE_NAME}}"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\bhsxray"; ValueType: string; ValueName: ""; ValueData: "URL:BhsXRay Protocol"
+Root: HKA; Subkey: "Software\Classes\bhsxray"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\bhsxray\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: """{app}\{{EXECUTABLE_NAME}}"",0"
+Root: HKA; Subkey: "Software\Classes\bhsxray\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{{EXECUTABLE_NAME}}"" ""%1"""
 
 [Run]
-Filename: "{app}\{{EXECUTABLE_NAME}}"; Description: "{cm:LaunchProgram,{{DISPLAY_NAME}}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{{EXECUTABLE_NAME}}"; Description: "{cm:LaunchProgram,{{DISPLAY_NAME}}}"; Flags: nowait postinstall skipifsilent runasoriginaluser
 
 [Code]
 function StartupShortcutTargetsCurrentInstall(const ShortcutPath,
@@ -77,8 +77,8 @@ begin
      not DeleteFile(ShortcutPath) then
     Log('Unable to remove the BhsXRay startup shortcut.');
   { Never remove another installation's protocol registration. }
-  if RegQueryStringValue(HKCU, 'Software\Classes\bhsxray\shell\open\command',
+  if RegQueryStringValue(HKA, 'Software\Classes\bhsxray\shell\open\command',
       '', CurrentCommand) and
      (CompareText(CurrentCommand, '"' + ExpectedTarget + '" "%1"') = 0) then
-    RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\bhsxray');
+    RegDeleteKeyIncludingSubkeys(HKA, 'Software\Classes\bhsxray');
 end;

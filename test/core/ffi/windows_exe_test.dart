@@ -7,6 +7,7 @@ import 'package:onexray/core/ffi/desktop_core_exit.dart';
 import 'package:onexray/core/ffi/windows/core_process.dart';
 import 'package:onexray/core/ffi/windows/exe_ffi_api.dart';
 import 'package:onexray/core/ffi/windows/ffi_api.dart';
+import 'package:onexray/core/ffi/windows/install_protection.dart';
 import 'package:onexray/core/ffi/windows/mode.dart';
 import 'package:onexray/core/ffi/windows/msix_ffi_api.dart';
 import 'package:onexray/core/ffi/windows/native_api.dart';
@@ -21,30 +22,33 @@ void main() {
   late List<VpnStatus> events;
   late List<Object> errors;
 
-  WindowsExeFfiApi create({Future<StartVpnRequest> Function()? readRequest}) =>
-      WindowsExeFfiApi(
-        filesDirectory: directory.path,
-        executable: p.join(directory.path, 'OneXrayCore.exe'),
-        process: process,
-        readRequest:
-            readRequest ??
-            () async => StartVpnRequest(
-              TunJson.fromJson({
-                'tunDnsIPv4': '8.8.8.8',
-                'autoOutboundsInterface': 'Ethernet 2',
-              }),
-              '18187',
-              '18186',
-              jsonEncode(
-                LibXrayInvokeRequest(
-                  method: LibXrayMethod.runXray,
-                  payload: RunXrayRequest('{"inbounds":[]}').toJson(),
-                ).toJson(),
-              ),
-            ),
-        notify: (status) async => events.add(status),
-        notifyError: (error) => errors.add(error),
-      );
+  WindowsExeFfiApi create({
+    Future<StartVpnRequest> Function()? readRequest,
+    Future<void> Function(String directory)? verifyInstall,
+  }) => WindowsExeFfiApi(
+    filesDirectory: directory.path,
+    executable: p.join(directory.path, 'OneXrayCore.exe'),
+    process: process,
+    readRequest:
+        readRequest ??
+        () async => StartVpnRequest(
+          TunJson.fromJson({
+            'tunDnsIPv4': '8.8.8.8',
+            'autoOutboundsInterface': 'Ethernet 2',
+          }),
+          '18187',
+          '18186',
+          jsonEncode(
+            LibXrayInvokeRequest(
+              method: LibXrayMethod.runXray,
+              payload: RunXrayRequest('{"inbounds":[]}').toJson(),
+            ).toJson(),
+          ),
+        ),
+    notify: (status) async => events.add(status),
+    notifyError: (error) => errors.add(error),
+    verifyInstall: verifyInstall,
+  );
 
   setUp(() async {
     final root = Directory('../references/windows-exe-tests').absolute;
@@ -159,6 +163,21 @@ void main() {
       expect(events, isNot(contains(VpnStatus.disconnected)));
     },
   );
+
+  test('EXE never elevates a Core that standard users can replace', () async {
+    await File(p.join(directory.path, 'OneXrayCore.exe')).writeAsString('');
+    final api = create(verifyInstall: verifyProtectedInstall);
+
+    final result = await api.startVpn();
+
+    expect(result.state, NativeVpnCommandState.failed);
+    expect(result.message, contains('standard users can modify'));
+    expect(process.arguments, isNull);
+    expect(process.stops, 0);
+    expect(directory.listSync().map((entry) => p.basename(entry.path)), [
+      'OneXrayCore.exe',
+    ]);
+  });
 
   test('EXE replaces all existing named Cores before starting', () async {
     process.pids.addAll({10, 20});

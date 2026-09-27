@@ -5,7 +5,7 @@
 #   Xray-core: .github/xray-core-version.json. The metadata job resolves the
 #              tag to one commit, so every job builds the same Xray-core.
 #   Android:   one arm64-v8a APK; Xray-core is compiled into libXray.
-#   Windows:   one EXE installer and ZIP per architecture, each with its Core.
+#   Windows:   one EXE installer per architecture (per-machine, Program Files).
 #              EXE builds omit VCore, which only the disabled MSIX mode uses.
 #   Release:   pushing a v* tag publishes every artifact as a GitHub Release.
 #              The fork numbers its own versions (brand.json "version"); the
@@ -228,7 +228,7 @@ jobs:
           if-no-files-found: error
 
   # =================================================================
-  # Windows — EXE installer and ZIP per architecture.
+  # Windows — EXE installer per architecture.
   #   x64 uses Windows Server 2025; arm64 uses GitHub's native Windows 11
   #   arm64 runner so Flutter and libXray match the target.
   # =================================================================
@@ -383,18 +383,17 @@ jobs:
 
       - name: Name artifacts
         working-directory: output
-        run: |
-          for extension in exe zip; do
-            mv "OneXray-${{ matrix.package_suffix }}.$extension" "BhsXRay-${{ matrix.package_suffix }}.$extension"
-          done
+        # Only the installer is published: it installs under Program Files, where
+        # standard users cannot replace the elevated Core. The ZIP could be
+        # extracted anywhere, so the App would refuse to connect from it.
+        run: mv "OneXray-${{ matrix.package_suffix }}.exe" "BhsXRay-${{ matrix.package_suffix }}.exe"
 
-      - name: Upload EXE and ZIP
+      - name: Upload installer
         uses: actions/upload-artifact@v7
         with:
           name: windows-${{ matrix.arch }}
           path: |
             output/BhsXRay-${{ matrix.package_suffix }}.exe
-            output/BhsXRay-${{ matrix.package_suffix }}.zip
             output/provenance-windows-${{ matrix.arch }}-exe.json
           if-no-files-found: error
 

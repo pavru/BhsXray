@@ -257,7 +257,10 @@ class WindowsPackagingTest(unittest.TestCase):
         self.assertIn("app_id: 292e71ae-61e0-439a-8310-20d2febca33d", config)
         self.assertIn(f"executable_name: {_EXECUTABLE}", config)
         self.assertIn(f'set(BINARY_NAME "{_EXECUTABLE.removesuffix(".exe")}")', cmake)
-        self.assertIn("privileges_required: lowest", config)
+        # Fork: a per-machine install keeps the elevated Core out of user-writable folders.
+        self.assertIn("privileges_required: admin", config)
+        self.assertIn("runasoriginaluser", installer)
+        self.assertNotIn("HKCU", installer)
         self.assertIn("AppId={{APP_ID}}", installer)
         self.assertIn("PrivilegesRequired={{PRIVILEGES_REQUIRED}}", installer)
         self.assertIn("AppVersion={{APP_VERSION}}", installer)
