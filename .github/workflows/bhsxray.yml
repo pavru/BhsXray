@@ -38,10 +38,21 @@ concurrency:
   group: bhsxray-${{ github.ref }}
   cancel-in-progress: false
 
+# Every build input is pinned: tool versions here, actions by commit SHA,
+# downloads by SHA-256. Update them deliberately, together, and record why.
 env:
   LIBXRAY_REPOSITORY: pavru/libXray
-  LIBXRAY_REF: main
+  # pavru/libXray main at dad8740 (desktop Core config hash, warm ping).
+  LIBXRAY_REF: dad87400abcee296c862efc8c57330f44db26d0a
   NDK_VERSION: r29
+  ONEXRAY_FLUTTER_VERSION: "3.47.5"
+  ONEXRAY_FLUTTER_COMMIT: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1
+  GO_VERSION: "1.27.1"
+  PYTHON_VERSION: "3.14.7"
+  UV_VERSION: "0.12.19"
+  FASTFORGE_VERSION: "0.6.12"
+  LLVM_MINGW_RELEASE: "20260922"
+  LLVM_MINGW_SHA256: a317514a7a63badd692032c0c2b8e165f630bbaebbe7a3254348051f43a64949
   BUILD_NUMBER: ${{ github.run_number }}
   PYTHONUTF8: "1"
 
@@ -56,11 +67,11 @@ jobs:
       xray_version: ${{ steps.resolve.outputs.xray_version }}
       xray_query: ${{ steps.resolve.outputs.xray_query }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: OneXray
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ env.LIBXRAY_REF }}
@@ -95,7 +106,7 @@ jobs:
           cat metadata/build-metadata.json
 
       - name: Upload build metadata
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: build-metadata
           path: metadata/build-metadata.json
@@ -110,14 +121,13 @@ jobs:
       run:
         working-directory: OneXray
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: OneXray
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.x"
-          check-latest: true
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Rebrand is up to date
         run: python tool/rebrand/rebrand.py --check
@@ -148,39 +158,39 @@ jobs:
       run:
         working-directory: OneXray
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: OneXray
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ needs.metadata.outputs.libxray_sha }}
           path: libXray
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: stable
-          check-latest: true
+          go-version: ${{ env.GO_VERSION }}
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.x"
-          check-latest: true
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: ${{ env.UV_VERSION }}
 
       - name: Setup Flutter
         run: bash build_scripts/setup_flutter.sh
 
       - name: Setup Android NDK
         # libXray's Android builder invokes `gomobile bind`, which needs an NDK.
-        uses: nttld/setup-ndk@v1
+        uses: nttld/setup-ndk@ed92fe6cadad69be94a966a7ee3271275e62f779 # v1.6.0
         with:
           ndk-version: ${{ env.NDK_VERSION }}
           add-to-path: true
@@ -219,7 +229,7 @@ jobs:
           mv provenance-android-*.json provenance-android.json
 
       - name: Upload APK
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android
           path: |
@@ -258,27 +268,27 @@ jobs:
         shell: bash
         working-directory: OneXray
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: OneXray
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.LIBXRAY_REPOSITORY }}
           ref: ${{ needs.metadata.outputs.libxray_sha }}
           path: libXray
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: stable
-          check-latest: true
+          go-version: ${{ env.GO_VERSION }}
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.x"
-          check-latest: true
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: ${{ env.UV_VERSION }}
 
       - name: Setup Flutter
         run: bash build_scripts/setup_flutter.sh
@@ -286,30 +296,20 @@ jobs:
       - name: Install LLVM-MinGW for Windows ARM64
         if: matrix.arch == 'arm64'
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          $headers = @{
-            Accept = "application/vnd.github+json"
-            Authorization = "Bearer $env:GH_TOKEN"
-            "X-GitHub-Api-Version" = "2022-11-28"
-          }
-          $release = Invoke-RestMethod `
-            -Headers $headers `
-            -Uri "https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest"
-          $asset = $release.assets |
-            Where-Object { $_.name -match "^llvm-mingw-.+-ucrt-aarch64\.zip$" } |
-            Select-Object -First 1
-          if ($null -eq $asset) {
-            throw "The latest LLVM-MinGW release has no ARM64 UCRT archive"
-          }
-
-          $archivePath = Join-Path $env:RUNNER_TEMP $asset.name
+          $name = "llvm-mingw-${env:LLVM_MINGW_RELEASE}-ucrt-aarch64.zip"
+          $archivePath = Join-Path $env:RUNNER_TEMP $name
           $extractPath = Join-Path $env:RUNNER_TEMP "llvm-mingw"
-          Write-Host "Downloading LLVM-MinGW $($release.tag_name): $($asset.name)"
-          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $archivePath
-          "ONEXRAY_LLVM_MINGW_RELEASE=$($release.tag_name)" >> $env:GITHUB_ENV
-          "ONEXRAY_LLVM_MINGW_SHA256=$((Get-FileHash $archivePath -Algorithm SHA256).Hash.ToLower())" >> $env:GITHUB_ENV
+          Write-Host "Downloading LLVM-MinGW ${env:LLVM_MINGW_RELEASE}: $name"
+          Invoke-WebRequest `
+            -Uri "https://github.com/mstorsjo/llvm-mingw/releases/download/${env:LLVM_MINGW_RELEASE}/$name" `
+            -OutFile $archivePath
+          $actual = (Get-FileHash $archivePath -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne ${env:LLVM_MINGW_SHA256}) {
+            throw "LLVM-MinGW archive hash mismatch: $actual"
+          }
+          "ONEXRAY_LLVM_MINGW_RELEASE=${env:LLVM_MINGW_RELEASE}" >> $env:GITHUB_ENV
+          "ONEXRAY_LLVM_MINGW_SHA256=$actual" >> $env:GITHUB_ENV
           Expand-Archive -LiteralPath $archivePath -DestinationPath $extractPath
 
           $binPath = Get-ChildItem -LiteralPath $extractPath -Directory |
@@ -345,7 +345,7 @@ jobs:
       - name: Install Fastforge
         shell: pwsh
         run: |
-          dart pub global activate fastforge
+          dart pub global activate fastforge ${env:FASTFORGE_VERSION}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $pubCache = $env:PUB_CACHE
           if (-not $pubCache) {
@@ -389,7 +389,7 @@ jobs:
         run: mv "OneXray-${{ matrix.package_suffix }}.exe" "BhsXRay-${{ matrix.package_suffix }}.exe"
 
       - name: Upload installer
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-${{ matrix.arch }}
           path: |
@@ -407,7 +407,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: dist
           merge-multiple: true

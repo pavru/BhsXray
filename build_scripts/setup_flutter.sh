@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-flutter_channel="stable"
+# ONEXRAY_FLUTTER_VERSION pins a release tag instead of the moving stable
+# branch; ONEXRAY_FLUTTER_COMMIT, when set, must match the checked-out commit.
+flutter_channel="${ONEXRAY_FLUTTER_VERSION:-stable}"
 flutter_root="${ONEXRAY_FLUTTER_ROOT:-$HOME/flutter/$flutter_channel}"
 flutter_bin_dir="$flutter_root/bin"
 
@@ -49,6 +51,13 @@ add_to_github_env() {
 rm -rf "$flutter_root"
 mkdir -p "$(dirname "$flutter_root")"
 git clone --depth 1 --branch "$flutter_channel" https://github.com/flutter/flutter.git "$flutter_root"
+if [[ -n "${ONEXRAY_FLUTTER_COMMIT:-}" ]]; then
+  actual_commit="$(git -C "$flutter_root" rev-parse HEAD)"
+  if [[ "$actual_commit" != "$ONEXRAY_FLUTTER_COMMIT" ]]; then
+    echo "Flutter $flutter_channel is $actual_commit, expected $ONEXRAY_FLUTTER_COMMIT" >&2
+    exit 1
+  fi
+fi
 
 export PATH="$flutter_bin_dir:$PATH"
 add_to_github_path "$flutter_bin_dir"
