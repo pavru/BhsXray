@@ -295,12 +295,10 @@ class ConnectionCompiler {
               : null,
         ).toJson(),
         createBlackholeOutbound(tag: 'block').toJson(),
-        // Queries the core does not answer itself (HTTPS/SVCB, TXT, SRV, ...)
-        // leave through a proxy node in every mode, never in plain text
-        // outside the tunnel. dialerProxy cannot target the balancer.
         createDnsOutbound(
           tag: dnsOutbound,
-          dialerProxy: selector.first,
+          dialerProxy: allVpn ? selector.single : 'direct',
+          answerServiceBinding: !allVpn,
         ).toJson(),
       ]);
       final directDomains =

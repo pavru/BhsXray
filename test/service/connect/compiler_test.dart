@@ -567,11 +567,16 @@ void main() {
           'block',
           'dnsOut',
         ]);
-        // Unanswered DNS query types never leave outside the tunnel.
         expect(
           outbounds.last['streamSettings']['sockopt']['dialerProxy'],
-          'app-entry-0',
+          'direct',
         );
+        // Queries leaving directly never include HTTPS/SVCB lookups.
+        expect(outbounds.last['settings']['rules'], [
+          {'action': 'hijack', 'qType': '1,28'},
+          {'action': 'return', 'qType': '64,65'},
+          {'action': 'direct'},
+        ]);
         expect(
           outbounds.any((outbound) => outbound['protocol'] == 'loopback'),
           false,
@@ -1197,6 +1202,10 @@ void main() {
               dnsOutbound['streamSettings']['sockopt']['dialerProxy'],
               'app-entry-0',
             );
+            expect(dnsOutbound['settings']['rules'], [
+              {'action': 'hijack', 'qType': '1,28'},
+              {'action': 'direct'},
+            ]);
             final direct = (config['outbounds'] as List).singleWhere(
               (outbound) => outbound['tag'] == 'direct',
             );
