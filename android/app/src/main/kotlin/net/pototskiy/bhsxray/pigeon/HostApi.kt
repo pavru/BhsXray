@@ -19,6 +19,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import libXray.DialerController
 import libXray.LibXray
 import net.pototskiy.bhsxray.vpn.VpnController
 import net.pototskiy.bhsxray.vpn.VpnStatusConnection
@@ -58,6 +59,15 @@ class AppHostApi(
     fun onInit(api: AppFlutterApi) {
         XLog.init()
         flutterApi = api
+        // Temporary cores in this process (latency tests) must reach proxies
+        // directly while the VPN runs; the service protects their sockets. A
+        // socket it cannot protect still dials, as before, through the tunnel.
+        LibXray.registerDialerController(object : DialerController {
+            override fun protectFd(fd: Long): Boolean {
+                vpnStatus.protect(fd.toInt())
+                return true
+            }
+        })
         scope.launch {
             try { api.vpnStatusChanged(vpnStatus.read()) }
             catch (error: Exception) { XLog.e("Initial VPN status failed", error) }

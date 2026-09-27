@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.os.Parcel
+import android.os.ParcelFileDescriptor
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,10 +22,12 @@ class VpnStatusConnection(
         const val ACTION_BIND = "net.pototskiy.bhsxray.VPN_STATUS_BIND"
         const val DESCRIPTOR = "net.pototskiy.bhsxray.VpnStatus"
         const val READ_STATUS = IBinder.FIRST_CALL_TRANSACTION
+        const val PROTECT_SOCKET = IBinder.FIRST_CALL_TRANSACTION + 1
     }
 
     private var binding: ServiceConnection? = null
     private var service: CompletableDeferred<IBinder>? = null
+    @Volatile private var connectedBinder: IBinder? = null
     private var pending: CompletableDeferred<Unit>? = null
     private var target: VpnStatus? = null
     private var eventGeneration = 0
@@ -49,6 +52,32 @@ class VpnStatusConnection(
                 request.recycle()
                 reply.recycle()
             }
+        }
+    }
+
+    /**
+     * Asks the running VPN service to protect a socket of this process, so
+     * temporary cores (latency tests) reach proxies directly instead of
+     * entering the App's own tunnel and dialing the connected server through
+     * itself. Without a bound service there is no tunnel to avoid. Callable
+     * from any thread; it never binds.
+     */
+    fun protect(fd: Int): Boolean {
+        val binder = connectedBinder ?: return false
+        val request = Parcel.obtain()
+        val reply = Parcel.obtain()
+        return try {
+            ParcelFileDescriptor.fromFd(fd).use { socket ->
+                request.writeInterfaceToken(DESCRIPTOR)
+                request.writeFileDescriptor(socket.fileDescriptor)
+                binder.transact(PROTECT_SOCKET, request, reply, 0) &&
+                    reply.run { readException(); readInt() == 1 }
+            }
+        } catch (_: Exception) {
+            false
+        } finally {
+            request.recycle()
+            reply.recycle()
         }
     }
 
@@ -100,7 +129,10 @@ class VpnStatusConnection(
         val connected = CompletableDeferred<IBinder>()
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, binder: IBinder) {
-                if (binding === this) connected.complete(binder)
+                if (binding === this) {
+                    connectedBinder = binder
+                    connected.complete(binder)
+                }
             }
             override fun onServiceDisconnected(name: ComponentName) {
                 if (binding !== this) return
@@ -133,6 +165,7 @@ class VpnStatusConnection(
     private fun unbind() {
         val connection = binding
         binding = null
+        connectedBinder = null
         service?.takeUnless { it.isCompleted }?.cancel()
         service = null
         if (connection != null) {
