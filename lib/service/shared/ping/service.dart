@@ -6,6 +6,9 @@ import 'package:onexray/core/errors/failure.dart';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:onexray/core/tools/logger.dart';
+import 'package:onexray/service/advanced/platform_policy.dart';
+import 'package:onexray/service/connect/runtime.dart';
+import 'package:onexray/service/connect/settings.dart';
 import 'package:onexray/service/shared/event_bus/service.dart';
 import 'package:onexray/core/db/database/constants.dart';
 import 'package:onexray/core/db/database/database.dart';
@@ -22,7 +25,10 @@ class PingService {
 
   factory PingService() => _singleton;
 
-  PingService._internal() : _databaseOverride = null, _batchOverride = null;
+  PingService._internal()
+    : _databaseOverride = null,
+      _batchOverride = null,
+      _platformOverride = null;
 
   PingService.forTesting({
     required AppDatabase database,
@@ -32,8 +38,10 @@ class PingService {
       PingState,
     )
     runBatch,
+    ConnectionPlatform platform = ConnectionPlatform.android,
   }) : _databaseOverride = database,
-       _batchOverride = runBatch {
+       _batchOverride = runBatch,
+       _platformOverride = platform {
     _automaticEnabled = automaticEnabled;
   }
 
@@ -43,6 +51,7 @@ class PingService {
     PingState,
   )?
   _batchOverride;
+  final ConnectionPlatform? _platformOverride;
 
   AppDatabase get _database => _databaseOverride ?? AppDatabase();
 
@@ -180,6 +189,7 @@ class PingService {
   }) async {
     final pingState = PingState();
     await pingState.readFromPreferences();
+    final interfaceName = await _outboundInterface(db);
 
     // Location/manual selections may span subscriptions too. Never mix them
     // within a native batch; finish one subscription before starting the next.
@@ -194,7 +204,7 @@ class PingService {
       final batchRows = <CoreConfigData>[];
       final sources = <PingBatchSource>[];
       for (final row in rowSlice) {
-        final source = _makePingSource(row);
+        final source = _makePingSource(row, interfaceName);
         if (source != null) {
           batchRows.add(row);
           sources.add(source);
@@ -222,7 +232,28 @@ class PingService {
     }
   }
 
-  PingBatchSource? _makePingSource(CoreConfigData row) {
+  /// Desktop connections bind proxy sockets to the physical interface; latency
+  /// tests must too. Otherwise, while connected, they enter the App's own
+  /// tunnel, and the connected server would be dialed through itself.
+  Future<String?> _outboundInterface(AppDatabase db) async {
+    final platform = _platformOverride ?? connectionPlatform;
+    if (platform != ConnectionPlatform.windows &&
+        platform != ConnectionPlatform.linux) {
+      return null;
+    }
+    try {
+      final json = (await db.connectionConfigDao.read()).configurationJson;
+      final name = ConnectionConfiguration.fromJson(
+        jsonDecode(json) as Map<String, dynamic>,
+      ).policy.xrayOutboundInterfaceName.trim();
+      return name.isEmpty ? null : name;
+    } catch (error) {
+      ygLogger('Read ping interface failed (${error.runtimeType})');
+      return null;
+    }
+  }
+
+  PingBatchSource? _makePingSource(CoreConfigData row, String? interfaceName) {
     if (!EmptyTool.checkString(row.data)) {
       return null;
     }
@@ -231,6 +262,9 @@ class PingService {
       switch (type) {
         case CoreConfigType.outbound:
           final outbound = readOutboundFromDbData(row);
+          if (interfaceName != null) {
+            bindOutboundInterface(outbound, interfaceName);
+          }
           return PingBatchSource(encodeSingleOutbound(outbound));
         case CoreConfigType.raw:
           final bytes = base64Decode(row.data!);
@@ -267,4 +301,29 @@ class PingService {
           CoreConfigCompanion(delay: Value(delay), countryCode: Value(country)),
         );
   }
+}
+
+/// Binds an outbound's sockets, including UDP hopping redials, to [name].
+void bindOutboundInterface(Map<String, dynamic> outbound, String name) {
+  if (const ['blackhole', 'loopback', 'dns'].contains(outbound['protocol'])) {
+    return;
+  }
+  final stream = _childMap(outbound, 'streamSettings');
+  _childMap(stream, 'sockopt')['interface'] = name;
+  final mask = stream['finalmask'];
+  final udp = mask is Map<String, dynamic> ? mask['udp'] : null;
+  if (udp is! List) return;
+  for (final entry in udp) {
+    if (entry is Map<String, dynamic> &&
+        entry['type'] is String &&
+        (entry['type'] as String).toLowerCase() == 'udphop') {
+      _childMap(_childMap(entry, 'settings'), 'sockopt')['interface'] = name;
+    }
+  }
+}
+
+Map<String, dynamic> _childMap(Map<String, dynamic> parent, String key) {
+  final value = parent[key];
+  if (value is Map<String, dynamic>) return value;
+  return parent[key] = <String, dynamic>{};
 }

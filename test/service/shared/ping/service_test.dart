@@ -70,6 +70,38 @@ void main() {
     );
   });
 
+  test('desktop latency tests bind to the connection interface', () async {
+    await db.connectionConfigDao.commit(
+      configurationJson: jsonEncode({
+        'policy': {'xrayOutboundInterfaceName': 'Ethernet 2'},
+      }),
+    );
+    final id = await db.coreConfigDao.insertRow(_node('Desktop'));
+    for (final (platform, bound) in [
+      (ConnectionPlatform.windows, true),
+      (ConnectionPlatform.android, false),
+    ]) {
+      late List<PingBatchSource> sent;
+      final service = PingService.forTesting(
+        database: db,
+        platform: platform,
+        runBatch: (sources, _) async {
+          sent = sources;
+          return const [PingBatchResult(true, 10, '')];
+        },
+      );
+      await service.pingConfigIds([id], force: true);
+      final outbound =
+          (jsonDecode(sent.single.xrayJson)['outbounds'] as List).single
+              as Map<String, dynamic>;
+      expect(
+        outbound['streamSettings']?['sockopt']?['interface'],
+        bound ? 'Ethernet 2' : isNull,
+        reason: platform.name,
+      );
+    }
+  });
+
   test('imported-node and subscription queues always run', () async {
     final local = await db.coreConfigDao.insertRow(_node('Local'));
     final remote = await db.coreConfigDao.insertRow(_node('Remote', subId: 9));
