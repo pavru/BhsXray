@@ -62,6 +62,8 @@ Packaging: `uv run --project build_scripts python build_scripts/main.py OneXray 
 
 This checkout is the `pavru/OneXray` fork, rebranded to BhsXRay (`net.pototskiy.bhsxray`) for Android and Windows; the plan is in `FORK_PLAN.md`. Identity rewrites are produced by `tool/rebrand/rebrand.py` from `tool/rebrand/brand.json` — re-run it after every upstream merge and extend its rules or kept patterns rather than hand-editing brand strings. `python tool/rebrand/rebrand.py --check` must report nothing pending. See `tool/rebrand/README.md` for what is intentionally left upstream-named.
 
+Fork CI is `.github/workflows/bhsxray.yml` (Android and Windows only; upstream `build.yml`/publish workflows are disabled in the fork). Xray-core versions to build live in `.github/xray-core-versions.json`; `XRAY_CORE_REF` / `--xray-core-ref` select the version per build, recorded as `xrayCore` in provenance. Android builds a locally signed universal APK (`android.package: apk` in `build_scripts/app/config.py`) instead of the upstream Google Play fastlane lane — never run that lane. Standalone Windows Cores and `cores.json` come from libXray's `core windows` command and `build_scripts/cores_manifest.py`. The fork's libXray (`pavru/libXray`) must be a revision with `LIBXRAY_XRAY_CORE_REF` support.
+
 ## Docs language
 
 Business docs in `docs/` are written in Chinese; `docs/agents/` in English (see `docs/AGENTS.md`). Keep one contract per topic and link rather than duplicate.

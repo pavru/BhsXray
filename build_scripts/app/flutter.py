@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from app.android import AndroidBuilder
+from app.android import AndroidBuilder, android_package
 from app.apple import AppleBuilder
 from app.builder import Builder
 from app.command_line import cp_dir_files, dart_command, flutter_command, run_command
@@ -34,7 +34,7 @@ class FlutterBuilder(Builder):
         options = {"mode": windows_mode} if new_system == "windows" else {}
         self.builder = builder_types[new_system](project, new_system, build_scripts_dir, **options)
         self.build_type = {
-            "android": "appbundle",
+            "android": android_package(self.project_config),
             "ios": "ipa",
             "macos": "macos",
             "linux": "linux",

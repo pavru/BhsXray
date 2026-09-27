@@ -7,8 +7,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from app.android import AndroidBuilder
 from app.builder import Builder
-from app.command_line import download_file, run_command
+from app.command_line import download_file, flutter_command, run_command
 from app.flutter import FlutterBuilder
 from main import main
 
@@ -192,6 +193,44 @@ class BuilderTest(unittest.TestCase):
                          {"requestedRef": None, "version": "v1.0.0"}):
             with self.subTest(metadata=metadata), self.assertRaises(ValueError):
                 self._build_linux_core("v26.9.9", metadata)
+
+    def test_android_apk_mode_copies_the_signed_apk_without_fastlane(self):
+        builder = AndroidBuilder.__new__(AndroidBuilder)
+        builder.root_dir = str(self.root_dir)
+        builder.output_dir = str(self.root_dir / "output")
+        builder.project_dir = str(self.root_dir / "android")
+        builder.fastlane = "deploy"
+        builder.project_config = {"android.package": "apk"}
+        with mock.patch("app.android.run_command") as run, self.assertRaises(FileNotFoundError):
+            builder.build_app()
+        apk = self.root_dir / "build/app/outputs/flutter-apk/app-release.apk"
+        apk.parent.mkdir(parents=True)
+        apk.write_bytes(b"signed apk")
+
+        with mock.patch("app.android.run_command") as run:
+            builder.build_app()
+
+        run.assert_not_called()
+        self.assertEqual((self.root_dir / "output/OneXray-android-universal.apk").read_bytes(),
+                         b"signed apk")
+        builder.project_config = {}
+        with mock.patch("app.android.run_command") as run:
+            builder.build_app()
+        run.assert_called_once_with(["fastlane", "deploy", "--verbose"], cwd=builder.project_dir)
+
+    def test_fork_config_builds_a_universal_apk(self):
+        with mock.patch.dict("os.environ", {"BUILD_NUMBER": "1"}):
+            builder = FlutterBuilder("OneXray", "android", str(self.root_dir / "build_scripts"))
+        with (
+            mock.patch("app.flutter.run_command") as run,
+            mock.patch.object(builder.builder, "build_app") as build_app,
+        ):
+            builder.build_app()
+        run.assert_called_once_with(
+            [flutter_command(), "build", "apk", "--target-platform", "android-arm64,android-x64"],
+            cwd=builder.root_dir,
+        )
+        build_app.assert_called_once()
 
     def test_core_build_failure_propagates_before_copying_artifacts(self):
         self.builder.workspace_dir = str(self.root_dir)

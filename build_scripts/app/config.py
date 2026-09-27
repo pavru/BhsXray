@@ -19,6 +19,9 @@ PROJECT_CONFIG = {
         "core.bin.dst.file.windows": "app/OneXrayCore.exe",
         # Fork rebrand: matches BINARY_NAME in windows/CMakeLists.txt.
         "app.executable.windows": "BhsXRay.exe",
+        # Fork: build a locally signed universal APK instead of publishing an
+        # App Bundle through Google Play with fastlane.
+        "android.package": "apk",
         "app.release.dir.android": "../build/app/outputs",
         "app.release.dir.linux": "../dist",
     },
