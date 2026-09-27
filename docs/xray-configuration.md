@@ -79,7 +79,8 @@ Windows 服务直连开关在所有平台显示；开启后使用 Microsoft、Bi
 规则。规则生成共用于预览、保存变更比较和运行编译，不增加独立开关，也不影响 Custom 或 Raw。
 
 “所有流量经过 VPN”只生成一个走 proxy 的 `8.8.8.8` DNS server，不生成直连 DNS server
-及其路由规则；`dnsOut` 对非 A/AAAA 查询的转发也走当前代理节点。
+及其路由规则。所有模式下 `dnsOut` 对非 A/AAAA 查询（HTTPS/SVCB、TXT、SRV 等）的转发
+都经第一个代理节点（`dialerProxy` 不支持 balancer），不在隧道外明文发出。
 智能路由和常规自定义路由保留 proxy/direct 两个使用独立 tag 的真实 DNS server。代理 DNS 固定为 `8.8.8.8`；
 直连 DNS 默认使用该地址，可在各份路由配置中独立修改。智能路由关闭直连 DNS 开关后，
 保留已保存的地址，但运行时使用原默认地址且不匹配直连域名，直到重新开启开关。

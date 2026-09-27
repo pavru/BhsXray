@@ -567,9 +567,10 @@ void main() {
           'block',
           'dnsOut',
         ]);
+        // Unanswered DNS query types never leave outside the tunnel.
         expect(
           outbounds.last['streamSettings']['sockopt']['dialerProxy'],
-          'direct',
+          'app-entry-0',
         );
         expect(
           outbounds.any((outbound) => outbound['protocol'] == 'loopback'),
