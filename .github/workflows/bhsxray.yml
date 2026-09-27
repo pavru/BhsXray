@@ -1,16 +1,14 @@
 #
-# Builds the BhsXRay fork for Android and Windows against several Xray-core
-# versions. The upstream Build/publish workflows are disabled in this fork.
+# Builds the BhsXRay fork for Android and Windows. The upstream Build/publish
+# workflows are disabled in this fork.
 #
-#   Versions:  .github/xray-core-versions.json. The metadata job resolves every
-#              tag to one commit, so all jobs build the same Xray-core.
-#   Android:   one universal APK per version; Xray-core is compiled into
-#              libXray, so each APK carries exactly one version.
-#   Windows:   one EXE installer and ZIP per architecture with the default
-#              Core, plus a standalone Core per version and architecture and
-#              cores.json with their SHA-256 for in-app Core selection. EXE
-#              builds omit VCore, which only the disabled MSIX mode uses.
-#   Release:   pushing a v* tag publishes every artifact as a GitHub Release.
+#   Xray-core: .github/xray-core-version.json. The metadata job resolves the
+#              tag to one commit, so every job builds the same Xray-core.
+#   Android:   one universal APK; Xray-core is compiled into libXray.
+#   Windows:   one EXE installer and ZIP per architecture, each with its Core.
+#              EXE builds omit VCore, which only the disabled MSIX mode uses.
+#   Release:   pushing a v* tag (vX.Y.Z-bhs.N) publishes every artifact as a
+#              GitHub Release.
 #
 # Android signing secrets (without them manual runs are debug-signed and tag
 # builds fail):
@@ -54,8 +52,8 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       libxray_sha: ${{ steps.resolve.outputs.libxray_sha }}
-      versions: ${{ steps.resolve.outputs.versions }}
-      default_query: ${{ steps.resolve.outputs.default_query }}
+      xray_version: ${{ steps.resolve.outputs.xray_version }}
+      xray_query: ${{ steps.resolve.outputs.xray_query }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -77,28 +75,20 @@ jobs:
           python3 - "$libxray_sha" <<'EOF'
           import json, os, subprocess, sys
 
-          config = json.load(open("OneXray/.github/xray-core-versions.json", encoding="utf-8"))
-          versions, default = config["versions"], config["default"]
-          if default not in versions or len(set(versions)) != len(versions):
-              sys.exit("Invalid .github/xray-core-versions.json")
-
-          def resolve(ref):
-              return subprocess.run(
-                  [sys.executable, "libXray/build/main.py", "resolve-xray-core", ref],
-                  check=True, capture_output=True, text=True,
-              ).stdout.strip()
-
-          matrix = [{"version": version, "query": resolve(version)} for version in versions]
-          default_query = next(item["query"] for item in matrix if item["version"] == default)
+          version = json.load(open("OneXray/.github/xray-core-version.json", encoding="utf-8"))["version"]
+          query = subprocess.run(
+              [sys.executable, "libXray/build/main.py", "resolve-xray-core", version],
+              check=True, capture_output=True, text=True,
+          ).stdout.strip()
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"versions={json.dumps(matrix)}\n")
-              output.write(f"default_query={default_query}\n")
+              output.write(f"xray_version={version}\n")
+              output.write(f"xray_query={query}\n")
           with open("metadata/build-metadata.json", "w", encoding="utf-8") as record:
               json.dump({
                   "app": os.environ["GITHUB_SHA"], "ref": os.environ["GITHUB_REF"],
                   "runId": os.environ["GITHUB_RUN_ID"], "runAttempt": os.environ["GITHUB_RUN_ATTEMPT"],
                   "libXray": sys.argv[1],
-                  "xrayCore": {"default": default, "versions": matrix},
+                  "xrayCore": {"version": version, "query": query},
               }, record, indent=2)
           EOF
           cat metadata/build-metadata.json
@@ -135,19 +125,15 @@ jobs:
         run: python -m unittest discover -s tool/rebrand/tests -p 'test_*.py'
 
   # =================================================================
-  # Android — one locally signed universal APK per Xray-core version.
+  # Android — one locally signed universal APK.
   # =================================================================
   android:
     needs: metadata
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.metadata.outputs.versions) }}
     env:
       ONEXRAY_LIBXRAY_SHA: ${{ needs.metadata.outputs.libxray_sha }}
-      XRAY_CORE_REF: ${{ matrix.query }}
+      XRAY_CORE_REF: ${{ needs.metadata.outputs.xray_query }}
     defaults:
       run:
         working-directory: OneXray
@@ -219,20 +205,20 @@ jobs:
       - name: Name artifacts
         working-directory: output
         run: |
-          mv OneXray-android-universal.apk "BhsXRay-android-universal-xray-${{ matrix.version }}.apk"
-          mv provenance-android-*.json "provenance-android-xray-${{ matrix.version }}.json"
+          mv OneXray-android-universal.apk BhsXRay-android-universal.apk
+          mv provenance-android-*.json provenance-android.json
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          name: android-xray-${{ matrix.version }}
+          name: android
           path: |
-            output/BhsXRay-android-universal-xray-${{ matrix.version }}.apk
-            output/provenance-android-xray-${{ matrix.version }}.json
+            output/BhsXRay-android-universal.apk
+            output/provenance-android.json
           if-no-files-found: error
 
   # =================================================================
-  # Windows — EXE installer and ZIP per architecture with the default Core.
+  # Windows — EXE installer and ZIP per architecture.
   #   x64 uses Windows Server 2025; arm64 uses GitHub's native Windows 11
   #   arm64 runner so Flutter and libXray match the target.
   # =================================================================
@@ -254,7 +240,7 @@ jobs:
     timeout-minutes: 60
     env:
       ONEXRAY_LIBXRAY_SHA: ${{ needs.metadata.outputs.libxray_sha }}
-      XRAY_CORE_REF: ${{ needs.metadata.outputs.default_query }}
+      XRAY_CORE_REF: ${{ needs.metadata.outputs.xray_query }}
       GOARCH: ${{ matrix.goarch }}
       ONEXRAY_WINDOWS_ARCH: ${{ matrix.arch }}
     defaults:
@@ -403,111 +389,11 @@ jobs:
           if-no-files-found: error
 
   # =================================================================
-  # Windows Cores — standalone OneXrayCore per version and architecture.
-  #   The Core is pure Go, so both architectures cross-compile on Linux.
-  # =================================================================
-  cores:
-    needs: metadata
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        core: ${{ fromJSON(needs.metadata.outputs.versions) }}
-        target:
-          - arch: x64
-            goarch: amd64
-            suffix: windows-amd64
-          - arch: arm64
-            goarch: arm64
-            suffix: windows-arm64
-    env:
-      ASSET: BhsXRay-core-${{ matrix.core.version }}-${{ matrix.target.suffix }}.exe
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          path: OneXray
-
-      - uses: actions/checkout@v7
-        with:
-          repository: ${{ env.LIBXRAY_REPOSITORY }}
-          ref: ${{ needs.metadata.outputs.libxray_sha }}
-          path: libXray
-
-      - uses: actions/setup-go@v7
-        with:
-          go-version: stable
-          check-latest: true
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.x"
-          check-latest: true
-
-      - name: Build Core
-        working-directory: libXray
-        env:
-          GOARCH: ${{ matrix.target.goarch }}
-          LIBXRAY_XRAY_CORE_REF: ${{ matrix.core.query }}
-        run: python build/main.py core windows
-
-      - name: Describe Core
-        run: |
-          mkdir -p cores
-          cp libXray/bin/xray.exe "cores/$ASSET"
-          python OneXray/build_scripts/cores_manifest.py entry \
-            --binary "cores/$ASSET" --metadata libXray/xray-core.json \
-            --version "${{ matrix.core.version }}" --query "${{ matrix.core.query }}" \
-            --arch "${{ matrix.target.arch }}" --asset "$ASSET" \
-            --output "cores/$ASSET.json"
-          cat "cores/$ASSET.json"
-
-      - name: Upload Core
-        uses: actions/upload-artifact@v7
-        with:
-          name: core-${{ matrix.core.version }}-${{ matrix.target.arch }}
-          path: cores/*
-          if-no-files-found: error
-
-  manifest:
-    needs: cores
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          path: OneXray
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.x"
-          check-latest: true
-
-      - uses: actions/download-artifact@v7
-        with:
-          pattern: core-*
-          path: cores
-          merge-multiple: true
-
-      - name: Write cores.json
-        run: |
-          python OneXray/build_scripts/cores_manifest.py merge \
-            --versions OneXray/.github/xray-core-versions.json \
-            --output cores.json cores/*.exe.json
-          cat cores.json
-
-      - name: Upload manifest
-        uses: actions/upload-artifact@v7
-        with:
-          name: cores-manifest
-          path: cores.json
-          if-no-files-found: error
-
-  # =================================================================
   # Release — v* tags publish every artifact after all builds succeed.
   # =================================================================
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [metadata, checks, android, windows, manifest]
+    needs: [metadata, checks, android, windows]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -523,10 +409,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          rm -f -- *.exe.json
           sha256sum -- * > SHA256SUMS
           ls -l
           prerelease=()
-          [[ "$TAG" == *-* ]] && prerelease=(--prerelease)
+          # Fork tags are vX.Y.Z-bhs.N; only -alpha/-beta/-rc tags are prereleases.
+          [[ "$TAG" =~ -(alpha|beta|rc) ]] && prerelease=(--prerelease)
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "BhsXRay $TAG" \
             --generate-notes --verify-tag "${prerelease[@]}" -- *
