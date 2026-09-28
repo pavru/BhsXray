@@ -12,6 +12,7 @@ import 'package:onexray/core/ffi/windows/install_protection.dart';
 import 'package:onexray/core/ffi/windows/mode.dart';
 import 'package:onexray/core/ffi/windows/msix_ffi_api.dart';
 import 'package:onexray/core/ffi/windows/native_api.dart';
+import 'package:onexray/core/ffi/windows/service_ffi_api.dart';
 import 'package:onexray/core/pigeon/messages.g.dart';
 import 'package:onexray/core/pigeon/model.dart';
 import 'package:onexray/core/model/tun_json.dart';
@@ -69,7 +70,11 @@ void main() {
     expect(windowsBuildMode.name, configured);
     expect(
       WindowsFfiApi(),
-      configured == 'msix' ? isA<WindowsMsixFfiApi>() : isA<WindowsExeFfiApi>(),
+      configured == 'msix'
+          ? isA<WindowsMsixFfiApi>()
+          : windowsCoreServiceEnabled
+          ? isA<WindowsServiceFfiApi>()
+          : isA<WindowsExeFfiApi>(),
     );
   });
 

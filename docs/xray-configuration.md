@@ -354,6 +354,14 @@ Provider / Session Host 管理和系统 VPN 状态来源保持独立，不以进
 的子进程。只有退出得到确认且再次查询没有存活匹配进程，才报告已断开；查询、监测、提权
 取消或部分停止失败均保留错误，不伪装为已断开。PID 和句柄只用于本次操作及可取消的退出
 等待，不作为持久归属记录。进程查询、UAC 和有界退出等待在 worker isolate 内执行，不阻塞 Flutter UI。
+以上按名管理和 UAC 只用于 Debug 构建（或 `BHSXRAY_WINDOWS_CORE_SERVICE=false`）。
+BhsXRay 的 EXE Release 通过安装程序注册的 Core 服务（`BhsXRayCore`，以 SYSTEM 运行）
+启停 Core，连接时不弹 UAC：App 经 `\\.\pipe\BhsXRay.Core` 发送 Xray JSON、DNS、出口网卡
+和 Geodata 目录，不写 `core-inputs`；服务状态是唯一来源，`watch` 请求报告 Core 自行退出，
+服务不可用时启动失败，不回退到 UAC。服务只接受日志写入其 SYSTEM 配置目录下的
+`logs\access.log` / `logs\error.log`，因此 Release 的日志目录（`VpnConstants.logDir`）
+是该目录，App 用户只读。协议、权限与被拒绝的配置字段见
+[libXray 文档](../../libXray/README.md#windows-core-service)。
 Linux 使用系统 `procps` 工具按精确进程名 `OneXrayCore` 管理所有匹配进程，不保存或读取
 旧 PID 记录，不校验可执行路径、启动时间、UID 或配置参数。`pgrep -x` 配合存活状态筛选
 查询 PID，不再由 Dart 逐个读取 `/proc`；僵尸和已退出进程不视为已连接，也不依赖受

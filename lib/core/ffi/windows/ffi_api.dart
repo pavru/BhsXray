@@ -6,12 +6,14 @@ import 'package:onexray/core/ffi/windows/exe_ffi_api.dart';
 import 'package:onexray/core/ffi/windows/mode.dart';
 import 'package:onexray/core/ffi/windows/model.dart';
 import 'package:onexray/core/ffi/windows/msix_ffi_api.dart';
+import 'package:onexray/core/ffi/windows/service_ffi_api.dart';
 import 'package:onexray/core/pigeon/messages.g.dart';
 import 'package:path/path.dart' as p;
 
 abstract class WindowsFfiApi extends BaseFfiApi {
   static final WindowsFfiApi _singleton = switch (windowsBuildMode) {
-    WindowsMode.exe => WindowsExeFfiApi(),
+    WindowsMode.exe =>
+      windowsCoreServiceEnabled ? WindowsServiceFfiApi() : WindowsExeFfiApi(),
     WindowsMode.msix => WindowsMsixFfiApi(),
   };
 

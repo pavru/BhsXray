@@ -42,8 +42,8 @@ concurrency:
 # downloads by SHA-256. Update them deliberately, together, and record why.
 env:
   LIBXRAY_REPOSITORY: pavru/libXray
-  # pavru/libXray main at dad8740 (desktop Core config hash, warm ping).
-  LIBXRAY_REF: dad87400abcee296c862efc8c57330f44db26d0a
+  # pavru/libXray main at 733db61 (Windows Core service, config hash, warm ping).
+  LIBXRAY_REF: 733db6143e57ef6d34a357bc762e01e4256009dd
   NDK_VERSION: r29
   ONEXRAY_FLUTTER_VERSION: "3.47.5"
   ONEXRAY_FLUTTER_COMMIT: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1

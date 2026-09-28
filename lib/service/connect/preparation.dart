@@ -174,7 +174,7 @@ class ConnectionPreparation {
       regions: regions,
       options: RuntimeOptions(
         platform: platform,
-        sessionDirectory: VpnConstants.runDir,
+        sessionDirectory: VpnConstants.logDir,
         socksPort: ports[0],
         metricsPort: ports[1],
         ipv6: policy.ipv6Enabled,

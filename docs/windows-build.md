@@ -40,6 +40,7 @@ uv run --project build_scripts python build_scripts/main.py OneXray windows --wi
 - ZIP 由 Fastforge 压缩同一份 Release 目录；必须完整解压后运行，不能只复制 `OneXray.exe`。它不注册协议、不自动创建快捷方式，也不把用户数据放在解压目录；数据根目录与 EXE 安装版相同。
 - CMake 从目标 MSVC 工具链的 Redistributable 目录安装应用本地 VC++ runtime，随同一份 Release 目录进入 EXE、ZIP 和 MSIX；不复制开发机 System32 中的 DLL，不要求用户先安装 Visual Studio 或全局 VC++ runtime。Windows 10/11 的系统 UCRT 不重复打包。
 - 提权、查询进程和等待退出在 worker isolate 执行。拒绝 UAC 或启动失败时停在失败状态，不恢复旧连接。
+- BhsXRay 分支：安装程序按机器安装到 Program Files，并用 `OneXrayCore.exe service install` 注册自动启动的 `BhsXRayCore` 服务；升级前 `net stop` 停止服务以替换文件，卸载时 `service uninstall` 停止并删除服务及其数据目录。Release App 通过该服务启停 Core，不再每次连接弹 UAC；Debug 构建仍用 UAC。见 [Xray 配置](xray-configuration.md)。
 
 ## CI 构建
 

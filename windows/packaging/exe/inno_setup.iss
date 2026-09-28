@@ -1,4 +1,5 @@
-; Fastforge renders this template; EXE and ZIP share one Flutter build.
+; Fastforge renders this template. It registers the Core service, which the
+; release App needs to connect without a UAC prompt.
 [Setup]
 AppId={{APP_ID}}
 AppName={{DISPLAY_NAME}}
@@ -46,6 +47,42 @@ Root: HKA; Subkey: "Software\Classes\bhsxray\shell\open\command"; ValueType: str
 Filename: "{app}\{{EXECUTABLE_NAME}}"; Description: "{cm:LaunchProgram,{{DISPLAY_NAME}}}"; Flags: nowait postinstall skipifsilent runasoriginaluser
 
 [Code]
+const
+  { The App finds the service by these names; see lib/core/ffi/windows/core_service.dart. }
+  CoreServiceName = '{{DISPLAY_NAME}}Core';
+  CoreServiceArgs = ' -name {{DISPLAY_NAME}}Core';
+
+function CoreExecutable: String;
+begin
+  Result := ExpandConstant('{app}\OneXrayCore.exe');
+end;
+
+{ Stop the running Core service so its files can be replaced. }
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+begin
+  Result := '';
+  if not Exec(ExpandConstant('{sys}\net.exe'), 'stop ' + CoreServiceName, '',
+      SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    Log('Unable to run net stop for the Core service.');
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep <> ssPostInstall then
+    Exit;
+  if not Exec(CoreExecutable, 'service install' + CoreServiceArgs +
+      ' -display "{{DISPLAY_NAME}} Core" -pipe {{DISPLAY_NAME}}.Core' +
+      ' -client {{EXECUTABLE_NAME}}', '', SW_HIDE, ewWaitUntilTerminated,
+      ResultCode) or (ResultCode <> 0) then
+    SuppressibleMsgBox('The {{DISPLAY_NAME}} Core service could not be ' +
+      'registered (code ' + IntToStr(ResultCode) + '). Connecting will fail ' +
+      'until {{DISPLAY_NAME}} is installed again.', mbError, MB_OK, IDOK);
+end;
+
 function StartupShortcutTargetsCurrentInstall(const ShortcutPath,
   ExpectedTarget: String): Boolean;
 var
@@ -68,9 +105,13 @@ end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   ExpectedTarget, ShortcutPath, CurrentCommand: String;
+  ResultCode: Integer;
 begin
   if CurUninstallStep <> usUninstall then
     Exit;
+  if not Exec(CoreExecutable, 'service uninstall' + CoreServiceArgs, '',
+      SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
+    Log('Unable to remove the Core service.');
   ExpectedTarget := ExpandConstant('{app}\{{EXECUTABLE_NAME}}');
   ShortcutPath := ExpandConstant('{userstartup}\{{DISPLAY_NAME}}.lnk');
   if StartupShortcutTargetsCurrentInstall(ShortcutPath, ExpectedTarget) and

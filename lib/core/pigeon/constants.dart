@@ -1,4 +1,7 @@
+import 'package:onexray/core/ffi/windows/core_service.dart';
+import 'package:onexray/core/ffi/windows/mode.dart';
 import 'package:onexray/core/pigeon/host_api.dart';
+import 'package:onexray/core/tools/platform.dart';
 import 'package:path/path.dart' as p;
 
 class VpnConstants {
@@ -11,4 +14,13 @@ class VpnConstants {
   static String get runDir => p.join(AppHostApi().tunFilesDir, "run");
 
   static String get startPath => p.join(runDir, "start.json");
+
+  /// Where Xray writes its logs. The Windows Core service writes them only to
+  /// its own folder, which the App user may read.
+  static String get logDir =>
+      AppPlatform.isWindows &&
+          windowsBuildMode == WindowsMode.exe &&
+          windowsCoreServiceEnabled
+      ? windowsCoreServiceLogDirectory()
+      : runDir;
 }

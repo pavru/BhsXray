@@ -264,7 +264,7 @@ class RawEditorService {
     final request = runtime?.request;
     return RuntimeOptions(
       platform: runtime?.platform ?? connectionPlatform,
-      sessionDirectory: VpnConstants.runDir,
+      sessionDirectory: VpnConstants.logDir,
       metricsPort: int.tryParse(request?.metricsPort ?? '') ?? 65534,
       socksPort: int.tryParse(request?.socksPort ?? '') ?? 65535,
       ipv6: policy.ipv6Enabled,
