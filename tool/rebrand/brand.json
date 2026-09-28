@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.1.0",
   "files": "files",
   "upstream": {
     "name": "OneXray",
@@ -16,7 +16,7 @@
     "application_id": "net.pototskiy.bhsxray",
     "scheme": "bhsxray",
     "link_host": "bhsxray.pototskiy.net",
-    "github_repository": "pavru/OneXray",
+    "github_repository": "pavru/BhsXray",
     "windows_publisher": "Alex Pototskiy",
     "windows_app_guid": "292e71ae-61e0-439a-8310-20d2febca33d",
     "color": "#109E92"

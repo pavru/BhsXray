@@ -101,7 +101,7 @@ class RebrandTest(unittest.TestCase):
             "const scheme = 'bhsxray';",
             "const host = 'bhsxray.pototskiy.net';",
             "const docs = 'https://onexray.com/docs/';",
-            "const repo = 'https://github.com/pavru/OneXray/issues/new';",
+            "const repo = 'https://github.com/pavru/BhsXray/issues/new';",
             "const backup = 'BhsXRay-backup.json';",
             "const format = 'onexray-backup';",
             "const core = 'OneXrayCore.exe';",
@@ -123,7 +123,7 @@ class RebrandTest(unittest.TestCase):
             "",
         )))
         self.assertEqual(self.read("windows/packaging/exe/inno_setup.iss"), "\n".join((
-            "AppUpdatesURL=https://github.com/pavru/OneXray",
+            "AppUpdatesURL=https://github.com/pavru/BhsXray",
             'Root: HKCU; Subkey: "Software\\Classes\\bhsxray"; ValueData: "URL:BhsXRay Protocol"',
             "",
         )))
@@ -182,7 +182,7 @@ class RebrandTest(unittest.TestCase):
 
         self.run_rebrand()
 
-        releases = "https://github.com/pavru/OneXray/releases/latest"
+        releases = "https://github.com/pavru/BhsXray/releases/latest"
         self.assertEqual(self.read("lib/update.dart"),
                          f'const a = "{releases}";\nconst b = "{releases}";\n')
 

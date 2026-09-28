@@ -55,13 +55,13 @@ class AppUpdateService {
   AppUpdateService._internal();
 
   static const _githubLatestReleaseApi =
-      "https://api.github.com/repos/pavru/OneXray/releases/latest";
+      "https://api.github.com/repos/pavru/BhsXray/releases/latest";
   static const _githubLatestReleaseUrl =
-      "https://github.com/pavru/OneXray/releases/latest";
+      "https://github.com/pavru/BhsXray/releases/latest";
   static const _appStoreUrl =
       "https://apps.apple.com/us/app/onexray/id6745748773";
   static const _googlePlayUrl =
-      "https://github.com/pavru/OneXray/releases/latest";
+      "https://github.com/pavru/BhsXray/releases/latest";
   static const _automaticCheckInterval = Duration(days: 1);
 
   Future<AppUpdateCheckResult> checkForUpdate() async {

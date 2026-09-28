@@ -1,6 +1,6 @@
 app_id: 292e71ae-61e0-439a-8310-20d2febca33d
 publisher_name: Alex Pototskiy
-publisher_url: https://github.com/pavru/OneXray
+publisher_url: https://github.com/pavru/BhsXray
 display_name: BhsXRay
 executable_name: BhsXRay.exe
 script_template: inno_setup.iss
